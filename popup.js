@@ -1,4 +1,4 @@
-import cities from './cities.js';
+const cities = [];
 
 // Global variables
 let map
@@ -224,46 +224,196 @@ function initMap() {
   })
 }
 
-// Function to set location based on input
-async function setLocationFromInput() {
-  const input = document.getElementById("location-input").value.trim()
+// Function to setup city search with suggestions
+function setupCitySearch() {
+  const locationInput = document.getElementById("location-input");
+  const wrapper = locationInput.parentElement;
+  const datalist = document.getElementById("city-suggestions");
+  let debounceTimer;
 
-  // First check if we have a selected option from the datalist
-  const datalist = document.getElementById("city-suggestions")
-  const option = Array.from(datalist.options).find(opt => opt.value === input)
+  // Handle input changes
+  locationInput.addEventListener("input", async (e) => {
+    const value = e.target.value.trim();
 
-  if (option) {
-    // Use coordinates from the selected option
-    settings.latitude = parseFloat(option.getAttribute('data-lat'))
-    settings.longitude = parseFloat(option.getAttribute('data-lng'))
-    updateUIElements()
-    return
+    // Clear previous timer
+    clearTimeout(debounceTimer);
+
+    // Clear existing suggestions
+    datalist.innerHTML = "";
+
+    if (value.length < 2) return;
+
+    // Set new timer for debounce
+    debounceTimer = setTimeout(async () => {
+      try {
+        // Show loading state
+        wrapper.classList.add('loading');
+
+        // Get suggestions from PDK API
+        const suggestions = await searchDutchAddresses(value);
+
+        // Clear old suggestions
+        datalist.innerHTML = "";
+
+        if (suggestions.length === 0) {
+          showStatus('No matching locations found', 'error');
+          return;
+        }
+
+        // Add new suggestions
+        suggestions.forEach(suggestion => {
+          const option = document.createElement("option");
+          option.value = suggestion.display;
+          option.setAttribute('data-lat', suggestion.lat);
+          option.setAttribute('data-lng', suggestion.lng);
+          option.setAttribute('data-type', suggestion.type);
+          datalist.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        showStatus('Error fetching location suggestions', 'error');
+      } finally {
+        wrapper.classList.remove('loading');
+      }
+    }, 300);
+  });
+
+  // Handle Enter key
+  locationInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      setLocationFromInput();
+    }
+  });
+
+  // Handle selection from datalist
+  locationInput.addEventListener("change", async () => {
+    const selectedOption = Array.from(datalist.options).find(
+      opt => opt.value === locationInput.value
+    );
+
+    if (selectedOption) {
+      const lat = parseFloat(selectedOption.getAttribute('data-lat'));
+      const lng = parseFloat(selectedOption.getAttribute('data-lng'));
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        settings.latitude = lat;
+        settings.longitude = lng;
+        updateUIElements();
+        saveSettings();
+        showStatus('Location updated', 'success');
+      }
+    }
+  });
+}
+
+// Update searchDutchAddresses function to handle errors better
+async function searchDutchAddresses(query) {
+  if (query.length < 2) return [];
+
+  // Check cache first
+  const cacheKey = query.toLowerCase();
+  if (searchCache.has(cacheKey)) {
+    return searchCache.get(cacheKey);
   }
 
-  // If no exact match, try to search for the location
   try {
-    const suggestions = await searchDutchAddresses(input)
+    const params = new URLSearchParams({
+      q: query,
+      fq: 'type:gemeente OR type:woonplaats OR type:weg',
+      rows: 10
+    });
+
+    const response = await fetch(`${PDK_API.SUGGEST}?${params}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.response || !data.response.docs) {
+      return [];
+    }
+
+    const suggestions = data.response.docs.map(doc => ({
+      id: doc.id,
+      display: doc.weergavenaam,
+      type: doc.type,
+      lat: doc.centroide_ll.split('(')[1].split(' ')[1],
+      lng: doc.centroide_ll.split('(')[1].split(' ')[0]
+    }));
+
+    // Cache the results
+    searchCache.set(cacheKey, suggestions);
+    return suggestions;
+  } catch (error) {
+    console.error('Error fetching Dutch addresses:', error);
+    return [];
+  }
+}
+
+// Update setLocationFromInput to handle errors better
+async function setLocationFromInput() {
+  const input = document.getElementById("location-input").value.trim();
+  const datalist = document.getElementById("city-suggestions");
+
+  try {
+    // First check if we have a selected option from the datalist
+    const option = Array.from(datalist.options).find(opt => opt.value === input);
+
+    if (option) {
+      const lat = parseFloat(option.getAttribute('data-lat'));
+      const lng = parseFloat(option.getAttribute('data-lng'));
+
+      if (!isNaN(lat) && !isNaN(lng)) {
+        settings.latitude = lat;
+        settings.longitude = lng;
+        updateUIElements();
+        saveSettings();
+        return;
+      }
+    }
+
+    // If no exact match, try to search for the location
+    const suggestions = await searchDutchAddresses(input);
     if (suggestions.length > 0) {
-      // Use the first suggestion
-      const firstResult = suggestions[0]
-      settings.latitude = parseFloat(firstResult.lat)
-      settings.longitude = parseFloat(firstResult.lng)
-      document.getElementById("location-input").value = firstResult.display
-      updateUIElements()
-      return
+      const firstResult = suggestions[0];
+      settings.latitude = parseFloat(firstResult.lat);
+      settings.longitude = parseFloat(firstResult.lng);
+      document.getElementById("location-input").value = firstResult.display;
+      updateUIElements();
+      saveSettings();
+      return;
+    }
+
+    // Finally, try parsing as coordinates
+    const coords = input.split(",").map(coord => parseFloat(coord.trim()));
+    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+      settings.latitude = coords[0];
+      settings.longitude = coords[1];
+      updateUIElements();
+      saveSettings();
+    } else {
+      throw new Error("Invalid location format");
     }
   } catch (error) {
-    console.error('Error searching location:', error)
-  }
+    console.error('Error setting location:', error);
+    // Show error to user
+    const status = document.createElement('div');
+    status.textContent = "Please enter a valid city name or coordinates (latitude, longitude)";
+    status.className = 'error';
+    status.style.position = 'absolute';
+    status.style.bottom = '-20px';
+    status.style.left = '0';
+    status.style.fontSize = '0.75rem';
 
-  // Finally, try parsing as coordinates
-  const coords = input.split(",").map(coord => Number.parseFloat(coord.trim()))
-  if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
-    settings.latitude = coords[0]
-    settings.longitude = coords[1]
-    updateUIElements()
-  } else {
-    alert("Please enter a valid city name or coordinates (latitude, longitude)")
+    const container = document.getElementById("location-input").parentElement;
+    container.style.position = 'relative';
+    container.appendChild(status);
+
+    setTimeout(() => {
+      status.remove();
+    }, 3000);
   }
 }
 
@@ -288,77 +438,91 @@ function saveSettings() {
   })
 }
 
-function getCurrentLocation() {
-  if ("geolocation" in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        settings.latitude = position.coords.latitude
-        settings.longitude = position.coords.longitude
-        settings.accuracy = Math.round(position.coords.accuracy)
+async function getCurrentLocation() {
+  const wrapper = document.getElementById("location-input").parentElement;
 
-        // If we have Google Maps API key, try to get the address
-        if (googleMapsApiKey && google.maps.Geocoder) {
-          const geocoder = new google.maps.Geocoder()
-          const latlng = { lat: settings.latitude, lng: settings.longitude }
+  try {
+    if (!("geolocation" in navigator)) {
+      throw new Error("Geolocation is not supported by this browser.");
+    }
 
-          geocoder.geocode({ location: latlng }, (results, status) => {
-            if (status === "OK" && results[0]) {
-              document.getElementById("location-input").value = results[0].formatted_address
-            }
-          })
-        }
+    // Show loading state
+    wrapper.classList.add('loading');
 
-        updateUIElements()
-      },
-      (error) => {
-        console.error("Error getting location:", error)
-        alert("Could not get current location. Error: " + error.message)
-      },
-      {
+    // Request permission first
+    const permission = await navigator.permissions.query({ name: 'geolocation' });
+
+    if (permission.state === 'denied') {
+      throw new Error('Location permission denied. Please enable location access in your browser settings.');
+    }
+
+    // Get position with a promise wrapper
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: true,
-        timeout: 5000,
+        timeout: 10000,
         maximumAge: 0
-      }
-    )
-  } else {
-    alert("Geolocation is not supported by this browser.")
+      });
+    });
+
+    // Update settings with the new position
+    settings.latitude = position.coords.latitude;
+    settings.longitude = position.coords.longitude;
+    settings.accuracy = Math.round(position.coords.accuracy);
+
+    // Try to get address if Google Maps is available
+    if (googleMapsApiKey && window.google && google.maps && google.maps.Geocoder) {
+      const geocoder = new google.maps.Geocoder();
+      const latlng = { lat: settings.latitude, lng: settings.longitude };
+
+      const result = await new Promise((resolve, reject) => {
+        geocoder.geocode({ location: latlng }, (results, status) => {
+          if (status === "OK" && results[0]) {
+            resolve(results[0]);
+          } else {
+            reject(new Error('Geocoding failed'));
+          }
+        });
+      });
+
+      document.getElementById("location-input").value = result.formatted_address;
+    } else {
+      // If no Google Maps, just show coordinates
+      document.getElementById("location-input").value =
+        `${settings.latitude.toFixed(6)}, ${settings.longitude.toFixed(6)}`;
+    }
+
+    // Update UI and save
+    updateUIElements();
+    saveSettings();
+
+    // Show success message
+    showStatus('Location successfully updated', 'success');
+  } catch (error) {
+    console.error("Error getting location:", error);
+    showStatus(error.message || 'Could not get current location', 'error');
+  } finally {
+    wrapper.classList.remove('loading');
   }
 }
 
-// Function to search Dutch addresses
-async function searchDutchAddresses(query) {
-  if (query.length < 2) return [];
+// Helper function to show status messages
+function showStatus(message, type = 'error') {
+  const container = document.getElementById("location-input").parentElement;
+  const existingStatus = container.querySelector('.status-message');
 
-  // Check cache first
-  if (searchCache.has(query)) {
-    return searchCache.get(query);
+  if (existingStatus) {
+    existingStatus.remove();
   }
 
-  try {
-    const params = new URLSearchParams({
-      q: query,
-      fq: 'type:gemeente OR type:woonplaats OR type:weg',  // Filter for municipalities, cities, and streets
-      rows: 10
-    });
+  const status = document.createElement('div');
+  status.textContent = message;
+  status.className = `status-message ${type}`;
+  container.appendChild(status);
 
-    const response = await fetch(`${PDK_API.SUGGEST}?${params}`);
-    const data = await response.json();
-
-    const suggestions = data.response.docs.map(doc => ({
-      id: doc.id,
-      display: doc.weergavenaam,
-      type: doc.type,
-      lat: doc.centroide_ll.split('(')[1].split(' ')[1],
-      lng: doc.centroide_ll.split('(')[1].split(' ')[0]
-    }));
-
-    // Cache the results
-    searchCache.set(query, suggestions);
-    return suggestions;
-  } catch (error) {
-    console.error('Error fetching Dutch addresses:', error);
-    return [];
-  }
+  setTimeout(() => {
+    status.remove();
+  }, 3000);
 }
 
 // Function to get detailed information about a location
@@ -382,57 +546,6 @@ async function getLocationDetails(id) {
     console.error('Error fetching location details:', error);
     return null;
   }
-}
-
-// Update setupCitySearch function to use the PDK API
-function setupCitySearch() {
-  const locationInput = document.getElementById("location-input")
-  const datalist = document.getElementById("city-suggestions")
-  let debounceTimer
-
-  // Clear existing suggestions
-  datalist.innerHTML = ""
-
-  // Handle input changes with debounce
-  locationInput.addEventListener("input", (e) => {
-    const value = e.target.value.trim()
-
-    // Clear previous timer
-    clearTimeout(debounceTimer)
-
-    // Set new timer
-    debounceTimer = setTimeout(async () => {
-      if (value.length >= 2) {
-        // Clear existing suggestions
-        datalist.innerHTML = ""
-
-        // Get new suggestions
-        const suggestions = await searchDutchAddresses(value)
-
-        suggestions.forEach(suggestion => {
-          const option = document.createElement("option")
-          option.value = suggestion.display
-          option.setAttribute('data-id', suggestion.id)
-          option.setAttribute('data-lat', suggestion.lat)
-          option.setAttribute('data-lng', suggestion.lng)
-          datalist.appendChild(option)
-        })
-      }
-    }, 300)
-  })
-
-  // Handle Enter key
-  locationInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault()
-      setLocationFromInput()
-    }
-  })
-
-  // Handle selection from datalist
-  locationInput.addEventListener("change", async (e) => {
-    setLocationFromInput()
-  })
 }
 
 // Initialize the popup
@@ -494,20 +607,35 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("save-api-key").addEventListener("click", saveApiKey)
 
   // Tab switching logic
-  const tabButtons = document.querySelectorAll(".tab-btn")
-  const tabContents = document.querySelectorAll(".tab-content")
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  const tabContents = document.querySelectorAll(".tab-content");
 
+  function switchTab(tabName) {
+    // Remove active class from all buttons and contents
+    tabButtons.forEach(btn => btn.classList.remove("active"));
+    tabContents.forEach(content => content.classList.remove("active"));
+
+    // Add active class to selected button and content
+    const selectedButton = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+    const selectedContent = document.getElementById(tabName);
+
+    if (selectedButton && selectedContent) {
+      selectedButton.classList.add("active");
+      selectedContent.classList.add("active");
+    }
+  }
+
+  // Add click event listeners to tab buttons
   tabButtons.forEach((button) => {
     button.addEventListener("click", () => {
-      const tabName = button.dataset.tab
+      const tabName = button.getAttribute("data-tab");
+      switchTab(tabName);
+    });
+  });
 
-      tabButtons.forEach((btn) => btn.classList.remove("active"))
-      tabContents.forEach((content) => content.classList.remove("active"))
-
-      button.classList.add("active")
-      document.getElementById(tabName).classList.add("active")
-    })
-  })
+  // Initialize with the first tab
+  const defaultTab = tabButtons[0]?.getAttribute("data-tab") || "basic";
+  switchTab(defaultTab);
 
   // Add input event for location-input to provide real-time suggestions
   const locationInput = document.getElementById("location-input")

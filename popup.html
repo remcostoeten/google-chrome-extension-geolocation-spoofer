@@ -21,7 +21,10 @@
 
     <div class="tab-content active" id="basic">
       <div class="form-group">
-        <label for="enabled">Enable Location Override</label>
+        <label for="enabled"
+          data-tooltip="Toggle location spoofing on/off. When enabled, your browser will use the specified location instead of your actual location.">
+          Enable Location Override
+        </label>
         <label class="switch">
           <input type="checkbox" id="enabled">
           <span class="slider round"></span>
@@ -29,30 +32,45 @@
       </div>
 
       <div class="button-group">
-        <button id="get-current-location" class="button-secondary">Get Current Location</button>
+        <button id="get-current-location" class="button-secondary"
+          data-tooltip="Get your actual current location and use it as the starting point">
+          Get Current Location
+        </button>
       </div>
 
       <div class="form-group">
-        <label for="location-input">Location</label>
-        <input type="text" id="location-input" list="city-suggestions" placeholder="Enter city name or coordinates"
-          autocomplete="off">
-        <datalist id="city-suggestions">
-          <!-- City suggestions will be added here dynamically -->
-        </datalist>
+        <label for="location-input"
+          data-tooltip="Enter a city name, address, or coordinates (latitude, longitude). For Dutch addresses, you'll get real-time suggestions.">
+          Location
+        </label>
+        <div class="location-input-wrapper">
+          <input type="text" id="location-input" list="city-suggestions"
+            placeholder="City name, address, or coordinates" autocomplete="off">
+          <datalist id="city-suggestions">
+            <!-- City suggestions will be added here dynamically -->
+          </datalist>
+        </div>
       </div>
 
       <div class="form-group">
-        <label for="latitude">Latitude</label>
-        <input type="number" id="latitude" step="0.000001">
+        <label for="latitude" data-tooltip="The north-south position on Earth (range: -90 to 90)">
+          Latitude
+        </label>
+        <input type="number" id="latitude" step="0.000001" min="-90" max="90">
       </div>
 
       <div class="form-group">
-        <label for="longitude">Longitude</label>
-        <input type="number" id="longitude" step="0.000001">
+        <label for="longitude" data-tooltip="The east-west position on Earth (range: -180 to 180)">
+          Longitude
+        </label>
+        <input type="number" id="longitude" step="0.000001" min="-180" max="180">
       </div>
 
       <div class="form-group">
-        <label for="accuracy">Accuracy (meters)</label>
+        <label for="accuracy"
+          data-tooltip="The accuracy radius in meters. A smaller value means more precise location reporting.">
+          Accuracy (meters)
+        </label>
         <input type="range" id="accuracy" min="1" max="1000" value="10">
         <span id="accuracy-value">10</span>
       </div>
@@ -65,18 +83,26 @@
     </div>
 
     <div class="tab-content" id="profiles">
+      <div class="form-group">
+        <label data-tooltip="Save frequently used locations as profiles for quick access">Saved Locations</label>
+      </div>
       <div class="profiles-list" id="profiles-list">
         <!-- Profiles will be added here dynamically -->
       </div>
       <div class="form-group">
         <input type="text" id="profile-name" placeholder="Profile name">
-        <button id="save-profile" class="button-primary">Save Current Location</button>
+        <button id="save-profile" class="button-primary"
+          data-tooltip="Save current location settings with a custom name">
+          Save Current Location
+        </button>
       </div>
     </div>
 
     <div class="tab-content" id="advanced">
       <div class="form-group">
-        <label for="random-enabled">Random Location</label>
+        <label for="random-enabled" data-tooltip="Adds random variation to your location within the specified radius">
+          Random Location
+        </label>
         <label class="switch">
           <input type="checkbox" id="random-enabled">
           <span class="slider round"></span>
@@ -84,13 +110,18 @@
       </div>
 
       <div class="form-group">
-        <label for="random-radius">Random Radius (meters)</label>
+        <label for="random-radius"
+          data-tooltip="Maximum distance (in meters) from your set location for random variation">
+          Random Radius (meters)
+        </label>
         <input type="range" id="random-radius" min="10" max="1000" value="100">
         <span id="random-radius-value">100</span>
       </div>
 
       <div class="form-group">
-        <label for="log-requests">Log Requests</label>
+        <label for="log-requests" data-tooltip="Keep track of which websites request your location">
+          Log Requests
+        </label>
         <label class="switch">
           <input type="checkbox" id="log-requests">
           <span class="slider round"></span>
@@ -103,32 +134,38 @@
     </div>
 
     <div class="tab-content" id="settings">
-      <h2>Google Maps API Key</h2>
-      <p>Adding a Google Maps API key is optional, but provides the following benefits:</p>
-      <ul>
-        <li>Visual map interface for selecting locations</li>
-        <li>Ability to enter addresses and place names instead of coordinates</li>
-        <li>Autocomplete suggestions for locations</li>
-      </ul>
-      <p>To obtain an API key, follow these steps:</p>
-      <ol>
-        <li>Go to the <a href="https://console.cloud.google.com/google/maps-apis/overview" target="_blank">Google Cloud
-            Console</a></li>
-        <li>Create a new project or select an existing one</li>
-        <li>Enable the "Maps JavaScript API" and "Geocoding API"</li>
-        <li>Create credentials (API key) for these APIs</li>
-        <li>Copy the API key and paste it below</li>
-      </ol>
       <div class="form-group">
-        <label for="api-key">Google Maps API Key:</label>
-        <input type="text" id="api-key" placeholder="Enter your API key">
+        <label
+          data-tooltip="Optional: Add a Google Maps API key to enable visual map interface and global address search">
+          Google Maps Integration
+        </label>
+      </div>
+      <p class="settings-description">Adding a Google Maps API key enables:</p>
+      <ul class="features-list">
+        <li>🗺️ Visual map interface</li>
+        <li>🔍 Global address search</li>
+        <li>✨ Location autocomplete</li>
+      </ul>
+      <div class="setup-steps">
+        <p>To get your API key:</p>
+        <ol>
+          <li>Visit the <a href="https://console.cloud.google.com/google/maps-apis/overview" target="_blank"
+              rel="noopener noreferrer">Google Cloud Console</a></li>
+          <li>Create/select a project</li>
+          <li>Enable Maps JavaScript API</li>
+          <li>Create credentials (API key)</li>
+        </ol>
+      </div>
+      <div class="form-group">
+        <label for="api-key">API Key:</label>
+        <input type="text" id="api-key" placeholder="Paste your Google Maps API key">
       </div>
       <button id="save-api-key" class="button-primary">Save API Key</button>
       <p id="api-key-status"></p>
     </div>
   </div>
 
-  <script src="popup.js" type="module"></script>
+  <script src="popup.js"></script>
 </body>
 
 </html>
