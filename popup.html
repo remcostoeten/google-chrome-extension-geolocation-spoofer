@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Geolocation Manager</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="container">
+    <h1>Geolocation Manager</h1>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="basic">Basic</button>
+      <button class="tab-btn" data-tab="profiles">Profiles</button>
+      <button class="tab-btn" data-tab="advanced">Advanced</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
+    </div>
+
+    <div class="tab-content active" id="basic">
+      <div class="form-group">
+        <label for="enabled">Enable Location Override</label>
+        <label class="switch">
+          <input type="checkbox" id="enabled">
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="button-group">
+        <button id="get-current-location" class="button-secondary">Get Current Location</button>
+      </div>
+
+      <div class="form-group">
+        <label for="location-input">Location</label>
+        <input type="text" id="location-input" list="city-suggestions" placeholder="Enter city name or coordinates"
+          autocomplete="off">
+        <datalist id="city-suggestions">
+          <!-- City suggestions will be added here dynamically -->
+        </datalist>
+      </div>
+
+      <div class="form-group">
+        <label for="latitude">Latitude</label>
+        <input type="number" id="latitude" step="0.000001">
+      </div>
+
+      <div class="form-group">
+        <label for="longitude">Longitude</label>
+        <input type="number" id="longitude" step="0.000001">
+      </div>
+
+      <div class="form-group">
+        <label for="accuracy">Accuracy (meters)</label>
+        <input type="range" id="accuracy" min="1" max="1000" value="10">
+        <span id="accuracy-value">10</span>
+      </div>
+
+      <div id="map-container" style="display: none;">
+        <div id="map"></div>
+      </div>
+
+      <button id="set-location" class="button-primary">Set Location</button>
+    </div>
+
+    <div class="tab-content" id="profiles">
+      <div class="profiles-list" id="profiles-list">
+        <!-- Profiles will be added here dynamically -->
+      </div>
+      <div class="form-group">
+        <input type="text" id="profile-name" placeholder="Profile name">
+        <button id="save-profile" class="button-primary">Save Current Location</button>
+      </div>
+    </div>
+
+    <div class="tab-content" id="advanced">
+      <div class="form-group">
+        <label for="random-enabled">Random Location</label>
+        <label class="switch">
+          <input type="checkbox" id="random-enabled">
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="form-group">
+        <label for="random-radius">Random Radius (meters)</label>
+        <input type="range" id="random-radius" min="10" max="1000" value="100">
+        <span id="random-radius-value">100</span>
+      </div>
+
+      <div class="form-group">
+        <label for="log-requests">Log Requests</label>
+        <label class="switch">
+          <input type="checkbox" id="log-requests">
+          <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div class="logs-container" id="logs-container">
+        <!-- Logs will be added here dynamically -->
+      </div>
+    </div>
+
+    <div class="tab-content" id="settings">
+      <h2>Google Maps API Key</h2>
+      <p>Adding a Google Maps API key is optional, but provides the following benefits:</p>
+      <ul>
+        <li>Visual map interface for selecting locations</li>
+        <li>Ability to enter addresses and place names instead of coordinates</li>
+        <li>Autocomplete suggestions for locations</li>
+      </ul>
+      <p>To obtain an API key, follow these steps:</p>
+      <ol>
+        <li>Go to the <a href="https://console.cloud.google.com/google/maps-apis/overview" target="_blank">Google Cloud
+            Console</a></li>
+        <li>Create a new project or select an existing one</li>
+        <li>Enable the "Maps JavaScript API" and "Geocoding API"</li>
+        <li>Create credentials (API key) for these APIs</li>
+        <li>Copy the API key and paste it below</li>
+      </ol>
+      <div class="form-group">
+        <label for="api-key">Google Maps API Key:</label>
+        <input type="text" id="api-key" placeholder="Enter your API key">
+      </div>
+      <button id="save-api-key" class="button-primary">Save API Key</button>
+      <p id="api-key-status"></p>
+    </div>
+  </div>
+
+  <script src="cities.js" type="module"></script>
+  <script src="popup.js" type="module"></script>
+</body>
+
+</html>
