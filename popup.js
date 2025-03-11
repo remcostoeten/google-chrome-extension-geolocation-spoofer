@@ -17,6 +17,15 @@ let profiles = []
 let logs = []
 let googleMapsApiKey = ""
 
+// PDK API endpoints
+const PDK_API = {
+  SUGGEST: 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/suggest',
+  LOOKUP: 'https://api.pdok.nl/bzk/locatieserver/search/v3_1/lookup'
+};
+
+// Cache for search results
+let searchCache = new Map();
+
 function renderProfiles() {
   const profilesList = document.getElementById("profiles-list")
   profilesList.innerHTML = ""
@@ -219,40 +228,43 @@ function initMap() {
 async function setLocationFromInput() {
   const input = document.getElementById("location-input").value.trim()
 
-  if (googleMapsApiKey) {
-    try {
-      const geocoder = new google.maps.Geocoder()
-      const result = await new Promise((resolve, reject) => {
-        geocoder.geocode({ address: input }, (results, status) => {
-          if (status === "OK" && results[0]) {
-            resolve(results[0].geometry.location)
-          } else {
-            reject(new Error("Geocoding failed"))
-          }
-        })
-      })
+  // First check if we have a selected option from the datalist
+  const datalist = document.getElementById("city-suggestions")
+  const option = Array.from(datalist.options).find(opt => opt.value === input)
 
-      settings.latitude = result.lat()
-      settings.longitude = result.lng()
-    } catch (error) {
-      console.error("Geocoding error:", error)
-      alert("Could not find location. Please try entering coordinates directly.")
-      return
-    }
-  } else {
-    // Parse coordinates if no API key is available
-    const coords = input.split(",").map((coord) => Number.parseFloat(coord.trim()))
-    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
-      settings.latitude = coords[0]
-      settings.longitude = coords[1]
-    } else {
-      alert("Please enter valid coordinates (latitude, longitude)")
-      return
-    }
+  if (option) {
+    // Use coordinates from the selected option
+    settings.latitude = parseFloat(option.getAttribute('data-lat'))
+    settings.longitude = parseFloat(option.getAttribute('data-lng'))
+    updateUIElements()
+    return
   }
 
-  updateUI()
-  saveSettings()
+  // If no exact match, try to search for the location
+  try {
+    const suggestions = await searchDutchAddresses(input)
+    if (suggestions.length > 0) {
+      // Use the first suggestion
+      const firstResult = suggestions[0]
+      settings.latitude = parseFloat(firstResult.lat)
+      settings.longitude = parseFloat(firstResult.lng)
+      document.getElementById("location-input").value = firstResult.display
+      updateUIElements()
+      return
+    }
+  } catch (error) {
+    console.error('Error searching location:', error)
+  }
+
+  // Finally, try parsing as coordinates
+  const coords = input.split(",").map(coord => Number.parseFloat(coord.trim()))
+  if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
+    settings.latitude = coords[0]
+    settings.longitude = coords[1]
+    updateUIElements()
+  } else {
+    alert("Please enter a valid city name or coordinates (latitude, longitude)")
+  }
 }
 
 function loadProfile(index) {
@@ -313,48 +325,113 @@ function getCurrentLocation() {
   }
 }
 
-// Add city search functionality
+// Function to search Dutch addresses
+async function searchDutchAddresses(query) {
+  if (query.length < 2) return [];
+
+  // Check cache first
+  if (searchCache.has(query)) {
+    return searchCache.get(query);
+  }
+
+  try {
+    const params = new URLSearchParams({
+      q: query,
+      fq: 'type:gemeente OR type:woonplaats OR type:weg',  // Filter for municipalities, cities, and streets
+      rows: 10
+    });
+
+    const response = await fetch(`${PDK_API.SUGGEST}?${params}`);
+    const data = await response.json();
+
+    const suggestions = data.response.docs.map(doc => ({
+      id: doc.id,
+      display: doc.weergavenaam,
+      type: doc.type,
+      lat: doc.centroide_ll.split('(')[1].split(' ')[1],
+      lng: doc.centroide_ll.split('(')[1].split(' ')[0]
+    }));
+
+    // Cache the results
+    searchCache.set(query, suggestions);
+    return suggestions;
+  } catch (error) {
+    console.error('Error fetching Dutch addresses:', error);
+    return [];
+  }
+}
+
+// Function to get detailed information about a location
+async function getLocationDetails(id) {
+  try {
+    const params = new URLSearchParams({
+      id: id
+    });
+
+    const response = await fetch(`${PDK_API.LOOKUP}?${params}`);
+    const data = await response.json();
+
+    const doc = data.response.docs[0];
+    return {
+      name: doc.weergavenaam,
+      type: doc.type,
+      lat: doc.centroide_ll.split('(')[1].split(' ')[1],
+      lng: doc.centroide_ll.split('(')[1].split(' ')[0]
+    };
+  } catch (error) {
+    console.error('Error fetching location details:', error);
+    return null;
+  }
+}
+
+// Update setupCitySearch function to use the PDK API
 function setupCitySearch() {
   const locationInput = document.getElementById("location-input")
   const datalist = document.getElementById("city-suggestions")
+  let debounceTimer
 
   // Clear existing suggestions
   datalist.innerHTML = ""
 
-  // Add all cities to datalist
-  cities.forEach(city => {
-    const option = document.createElement("option")
-    option.value = `${city.name}, ${city.country}`
-    datalist.appendChild(option)
-  })
-
-  // Handle input changes
+  // Handle input changes with debounce
   locationInput.addEventListener("input", (e) => {
-    const value = e.target.value.toLowerCase()
-
-    // If the exact value matches a city suggestion, set the coordinates
-    const selectedCity = cities.find(city =>
-      `${city.name}, ${city.country}`.toLowerCase() === value
-    )
-
-    if (selectedCity) {
-      settings.latitude = selectedCity.lat
-      settings.longitude = selectedCity.lng
-      updateUIElements()
-    }
-  })
-
-  // Handle manual coordinate entry (lat, lng format)
-  locationInput.addEventListener("change", (e) => {
     const value = e.target.value.trim()
 
-    // Check if it's a coordinate pair
-    const coords = value.split(",").map(coord => Number.parseFloat(coord.trim()))
-    if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
-      settings.latitude = coords[0]
-      settings.longitude = coords[1]
-      updateUIElements()
+    // Clear previous timer
+    clearTimeout(debounceTimer)
+
+    // Set new timer
+    debounceTimer = setTimeout(async () => {
+      if (value.length >= 2) {
+        // Clear existing suggestions
+        datalist.innerHTML = ""
+
+        // Get new suggestions
+        const suggestions = await searchDutchAddresses(value)
+
+        suggestions.forEach(suggestion => {
+          const option = document.createElement("option")
+          option.value = suggestion.display
+          option.setAttribute('data-id', suggestion.id)
+          option.setAttribute('data-lat', suggestion.lat)
+          option.setAttribute('data-lng', suggestion.lng)
+          datalist.appendChild(option)
+        })
+      }
+    }, 300)
+  })
+
+  // Handle Enter key
+  locationInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      setLocationFromInput()
     }
+  })
+
+  // Handle selection from datalist
+  locationInput.addEventListener("change", async (e) => {
+    setLocationFromInput()
   })
 }
 
