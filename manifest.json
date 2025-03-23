@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Advanced Geolocation Manager",
-  "version": "2.0",
-  "description": "Manage and override your browser's geolocation settings with optional map features",
+  "name": "Geolocation Manager",
+  "version": "2.1.0",
+  "description": "A sleek, user-friendly tool to manage browser location settings with profile import/export and dark theme",
   "permissions": ["storage", "scripting", "geolocation"],
   "host_permissions": ["<all_urls>"],
   "action": {
@@ -35,6 +35,9 @@
       "matches": ["<all_urls>"]
     }
   ],
-  "options_page": "options.html"
+  "options_page": "options.html",
+  "author": "remcostoeten",
+  "homepage_url": "https://github.com/remcostoeten/geolocation-manager",
+  "minimum_chrome_version": "88"
 }
 
