@@ -7,16 +7,13 @@ let settings = {
   enabled: false,
   latitude: 37.7749,
   longitude: -122.4194,
-  accuracy: 10,
-  randomEnabled: false,
-  randomRadius: 100,
-  logRequests: false,
   ui: {
-    fontSize: 14, // Base font size in px
-    spacing: 12,  // Base spacing in px
-    buttonWidth: '100%', // Full width buttons
-    modalWidth: '400px', // Default modal width
-    compact: false // Compact mode toggle
+    fontSize: 14,
+    spacing: 12,
+    buttonWidth: '100%',
+    modalWidth: '400px',
+    compact: false,
+    theme: 'monochrome'
   }
 }
 
@@ -82,12 +79,6 @@ function updateUIElements() {
   document.getElementById("enabled").checked = settings.enabled;
   document.getElementById("latitude").value = settings.latitude.toFixed(6);
   document.getElementById("longitude").value = settings.longitude.toFixed(6);
-  document.getElementById("accuracy").value = settings.accuracy;
-  document.getElementById("accuracy-value").textContent = settings.accuracy;
-  document.getElementById("random-enabled").checked = settings.randomEnabled;
-  document.getElementById("random-radius").value = settings.randomRadius;
-  document.getElementById("random-radius-value").textContent = settings.randomRadius;
-  document.getElementById("log-requests").checked = settings.logRequests;
 
   const locationInput = document.getElementById("location-input");
   // Show the saved location name if it exists
@@ -210,12 +201,6 @@ function updateUI() {
   document.getElementById("enabled").checked = settings.enabled
   document.getElementById("latitude").value = settings.latitude
   document.getElementById("longitude").value = settings.longitude
-  document.getElementById("accuracy").value = settings.accuracy
-  document.getElementById("accuracy-value").textContent = settings.accuracy
-  document.getElementById("random-enabled").checked = settings.randomEnabled
-  document.getElementById("random-radius").value = settings.randomRadius
-  document.getElementById("random-radius-value").textContent = settings.randomRadius
-  document.getElementById("log-requests").checked = settings.logRequests
 
   if (map && marker) {
     const position = new google.maps.LatLng(settings.latitude, settings.longitude)
@@ -706,7 +691,6 @@ async function getCurrentLocation() {
     // Update settings with the new position
     settings.latitude = position.coords.latitude;
     settings.longitude = position.coords.longitude;
-    settings.accuracy = Math.round(position.coords.accuracy);
 
     // Always get and show the location name with flag
     const locationName = await ensureLocationName(settings.latitude, settings.longitude);
@@ -719,8 +703,6 @@ async function getCurrentLocation() {
     // Update specific UI elements without changing the location input
     document.getElementById("latitude").value = settings.latitude.toFixed(6);
     document.getElementById("longitude").value = settings.longitude.toFixed(6);
-    document.getElementById("accuracy").value = settings.accuracy;
-    document.getElementById("accuracy-value").textContent = settings.accuracy;
 
     // Update map if available
     if (map && marker) {
@@ -820,7 +802,23 @@ async function getLocationDetails(id) {
 document.addEventListener("DOMContentLoaded", () => {
   loadSettings();
   setupCitySearch();
-  setupGeolocationMonitoring();
+
+  // Add export/import event listeners
+  const exportBtn = document.getElementById("export-profiles");
+  const importBtn = document.getElementById("import-profiles");
+  const importFile = document.getElementById("import-file");
+
+  if (exportBtn) {
+    exportBtn.addEventListener("click", exportProfiles);
+  }
+
+  if (importBtn) {
+    importBtn.addEventListener("click", importProfiles);
+  }
+
+  if (importFile) {
+    importFile.addEventListener("change", handleFileSelect);
+  }
 
   // Add UI settings tab content
   const tabsContainer = document.querySelector('.tabs-container');
@@ -930,10 +928,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const elements = {
     latitude: document.getElementById("latitude"),
     longitude: document.getElementById("longitude"),
-    accuracy: document.getElementById("accuracy"),
-    randomEnabled: document.getElementById("random-enabled"),
-    randomRadius: document.getElementById("random-radius"),
-    logRequests: document.getElementById("log-requests"),
     saveProfile: document.getElementById("save-profile"),
     saveApiKey: document.getElementById("save-api-key")
   };
@@ -963,44 +957,6 @@ document.addEventListener("DOMContentLoaded", () => {
         this.value = settings.longitude;
         showStatus('Invalid longitude value', 'error');
       }
-    });
-  }
-
-  if (elements.accuracy) {
-    elements.accuracy.addEventListener("input", function() {
-      settings.accuracy = Number.parseInt(this.value);
-      const accuracyValue = document.getElementById("accuracy-value");
-      if (accuracyValue) {
-        accuracyValue.textContent = this.value;
-      }
-      saveSettings();
-    });
-  }
-
-  if (elements.randomEnabled) {
-    elements.randomEnabled.addEventListener("change", function() {
-      settings.randomEnabled = this.checked;
-      saveSettings();
-      showStatus(settings.randomEnabled ? 'Random location enabled' : 'Random location disabled', 'success');
-    });
-  }
-
-  if (elements.randomRadius) {
-    elements.randomRadius.addEventListener("input", function() {
-      settings.randomRadius = Number.parseInt(this.value);
-      const radiusValue = document.getElementById("random-radius-value");
-      if (radiusValue) {
-        radiusValue.textContent = this.value;
-      }
-      saveSettings();
-    });
-  }
-
-  if (elements.logRequests) {
-    elements.logRequests.addEventListener("change", function() {
-      settings.logRequests = this.checked;
-      saveSettings();
-      showStatus(settings.logRequests ? 'Request logging enabled' : 'Request logging disabled', 'success');
     });
   }
 
@@ -1076,6 +1032,17 @@ function applyUISettings() {
   root.style.setProperty('--base-spacing', `${ui.spacing}px`);
   root.style.setProperty('--modal-width', ui.modalWidth);
   
+  // Apply dark monochrome theme
+  root.style.setProperty('--primary', '#ffffff');
+  root.style.setProperty('--surface', '#1a1a1a');
+  root.style.setProperty('--surface-hover', '#2a2a2a');
+  root.style.setProperty('--border', '#333333');
+  root.style.setProperty('--text', '#ffffff');
+  root.style.setProperty('--text-secondary', '#999999');
+  root.style.setProperty('--success', '#ffffff');
+  root.style.setProperty('--error', '#999999');
+  root.style.setProperty('--input-bg', '#242424');
+  
   // Apply font sizes
   root.style.setProperty('--heading-font-size', `${ui.fontSize * 1.2}px`);
   root.style.setProperty('--text-font-size', `${ui.fontSize}px`);
@@ -1087,17 +1054,23 @@ function applyUISettings() {
   root.style.setProperty('--spacing-lg', `${ui.spacing * 1.5}px`);
   
   // Apply button styles
-  const buttons = document.querySelectorAll('.button-group');
-  buttons.forEach(group => {
-    group.style.display = 'flex';
-    group.style.flexDirection = 'column';
-    group.style.gap = `${ui.spacing * 0.5}px`;
-    
-    const btns = group.querySelectorAll('button');
-    btns.forEach(btn => {
-      btn.style.width = ui.buttonWidth;
-      btn.style.margin = '0';
-    });
+  const buttons = document.querySelectorAll('button');
+  buttons.forEach(btn => {
+    if (!btn.classList.contains('tab-btn')) {
+      btn.style.backgroundColor = 'var(--surface)';
+      btn.style.color = 'var(--text)';
+      btn.style.border = '1px solid var(--border)';
+      btn.style.padding = '8px 12px';
+      btn.style.borderRadius = '4px';
+    }
+  });
+  
+  // Apply input styles
+  const inputs = document.querySelectorAll('input[type="text"], input[type="number"]');
+  inputs.forEach(input => {
+    input.style.backgroundColor = 'var(--input-bg)';
+    input.style.color = 'var(--text)';
+    input.style.border = '1px solid var(--border)';
   });
   
   // Apply compact mode if enabled
@@ -1105,6 +1078,47 @@ function applyUISettings() {
     root.classList.add('compact-mode');
   } else {
     root.classList.remove('compact-mode');
+  }
+
+  // Update map styles if available
+  if (map) {
+    map.setOptions({
+      styles: [
+        { elementType: "geometry", stylers: [{ color: "#242424" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#242424" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#999999" }] },
+        {
+          featureType: "administrative.locality",
+          elementType: "labels.text.fill",
+          stylers: [{ color: "#ffffff" }],
+        },
+        {
+          featureType: "road",
+          elementType: "geometry",
+          stylers: [{ color: "#333333" }],
+        },
+        {
+          featureType: "road",
+          elementType: "geometry.stroke",
+          stylers: [{ color: "#242424" }],
+        },
+        {
+          featureType: "road",
+          elementType: "labels.text.fill",
+          stylers: [{ color: "#999999" }],
+        },
+        {
+          featureType: "water",
+          elementType: "geometry",
+          stylers: [{ color: "#1a1a1a" }],
+        },
+        {
+          featureType: "water",
+          elementType: "labels.text.fill",
+          stylers: [{ color: "#999999" }],
+        },
+      ],
+    });
   }
 }
 
@@ -1248,5 +1262,75 @@ async function getLocationName(lat, lng) {
     console.error('Error getting location name:', error);
     return null;
   }
+}
+
+// Add export/import functions
+function exportProfiles() {
+  const exportData = {
+    profiles: profiles,
+    exportDate: new Date().toISOString()
+  };
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `geolocation-profiles-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  
+  showStatus('Profiles exported successfully', 'success');
+}
+
+function importProfiles() {
+  const fileInput = document.getElementById('import-file');
+  fileInput.click();
+}
+
+function handleFileSelect(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+      
+      if (!importedData.profiles || !Array.isArray(importedData.profiles)) {
+        throw new Error('Invalid profile data format');
+      }
+
+      // Merge imported profiles with existing ones
+      const newProfiles = [...profiles];
+      importedData.profiles.forEach(profile => {
+        if (profile.name && typeof profile.latitude === 'number' && typeof profile.longitude === 'number') {
+          // Check if profile with same name exists
+          const existingIndex = newProfiles.findIndex(p => p.name === profile.name);
+          if (existingIndex >= 0) {
+            newProfiles[existingIndex] = profile; // Update existing profile
+          } else {
+            newProfiles.push(profile); // Add new profile
+          }
+        }
+      });
+
+      profiles = newProfiles;
+      chrome.storage.local.set({ geoProfiles: profiles }, () => {
+        renderProfiles();
+        showStatus('Profiles imported successfully', 'success');
+      });
+    } catch (error) {
+      console.error('Error importing profiles:', error);
+      showStatus('Error importing profiles: Invalid file format', 'error');
+    }
+    
+    // Reset file input
+    event.target.value = '';
+  };
+  
+  reader.readAsText(file);
 }
 

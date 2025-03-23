@@ -6,6 +6,140 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Geolocation Manager</title>
   <link rel="stylesheet" href="popup.css">
+  <style>
+    :root {
+      /* Dark Monochrome theme */
+      --primary: #ffffff;
+      --surface: #1a1a1a;
+      --surface-hover: #2a2a2a;
+      --border: #333333;
+      --text: #ffffff;
+      --text-secondary: #999999;
+      --success: #ffffff;
+      --error: #999999;
+      --input-bg: #242424;
+    }
+
+    body {
+      background-color: var(--surface);
+      color: var(--text);
+    }
+
+    button {
+      background-color: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--text);
+      transition: all 0.2s ease;
+      padding: 8px 12px;
+      border-radius: 4px;
+    }
+
+    button:hover {
+      background-color: var(--surface-hover);
+      border-color: var(--primary);
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      background-color: var(--input-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 4px;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    .switch {
+      border: 1px solid var(--border);
+      background-color: var(--input-bg);
+    }
+
+    .slider {
+      background-color: var(--input-bg);
+      border: 1px solid var(--border);
+    }
+
+    .slider:before {
+      background-color: var(--text);
+    }
+
+    input:checked + .slider {
+      background-color: var(--primary);
+    }
+
+    .suggestion-item {
+      background-color: var(--surface);
+      border: 1px solid var(--border);
+      margin: 2px 0;
+    }
+
+    .suggestion-item:hover {
+      background-color: var(--surface-hover);
+    }
+
+    .tab-btn {
+      background-color: transparent;
+      border: none;
+      color: var(--text-secondary);
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      padding: 8px 16px;
+    }
+
+    .tab-btn:hover {
+      background-color: transparent;
+      color: var(--text);
+      border-bottom: 2px solid var(--text-secondary);
+    }
+
+    .tab-btn.active {
+      color: var(--text);
+      border-bottom: 2px solid var(--primary);
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+
+    input[type="range"] {
+      background-color: var(--input-bg);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      background: var(--text);
+    }
+
+    input[type="range"]::-webkit-slider-runnable-track {
+      background: var(--border);
+    }
+
+    #map-container {
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    h1 {
+      color: var(--text);
+      margin-bottom: 24px;
+    }
+  </style>
 </head>
 
 <body>
@@ -15,7 +149,6 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="basic">Basic</button>
       <button class="tab-btn" data-tab="profiles">Profiles</button>
-      <button class="tab-btn" data-tab="advanced">Advanced</button>
       <button class="tab-btn" data-tab="settings">Settings</button>
     </div>
 
@@ -66,15 +199,6 @@
         <input type="number" id="longitude" step="0.000001" min="-180" max="180">
       </div>
 
-      <div class="form-group">
-        <label for="accuracy"
-          data-tooltip="The accuracy radius in meters. A smaller value means more precise location reporting.">
-          Accuracy (meters)
-        </label>
-        <input type="range" id="accuracy" min="1" max="1000" value="10">
-        <span id="accuracy-value">10</span>
-      </div>
-
       <div id="map-container" style="display: none;">
         <div id="map"></div>
       </div>
@@ -85,6 +209,11 @@
     <div class="tab-content" id="profiles">
       <div class="form-group">
         <label data-tooltip="Save frequently used locations as profiles for quick access">Saved Locations</label>
+        <div class="button-group" style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <button id="export-profiles" class="button-secondary">Export Profiles</button>
+          <button id="import-profiles" class="button-secondary">Import Profiles</button>
+          <input type="file" id="import-file" accept=".json" style="display: none;">
+        </div>
       </div>
       <div class="profiles-list" id="profiles-list">
         <!-- Profiles will be added here dynamically -->
@@ -98,70 +227,13 @@
       </div>
     </div>
 
-    <div class="tab-content" id="advanced">
-      <div class="form-group">
-        <label for="random-enabled" data-tooltip="Adds random variation to your location within the specified radius">
-          Random Location
-        </label>
-        <label class="switch">
-          <input type="checkbox" id="random-enabled">
-          <span class="slider round"></span>
-        </label>
-      </div>
-
-      <div class="form-group">
-        <label for="random-radius"
-          data-tooltip="Maximum distance (in meters) from your set location for random variation">
-          Random Radius (meters)
-        </label>
-        <input type="range" id="random-radius" min="10" max="1000" value="100">
-        <span id="random-radius-value">100</span>
-      </div>
-
-      <div class="form-group">
-        <label for="log-requests" data-tooltip="Keep track of which websites request your location">
-          Log Requests
-        </label>
-        <label class="switch">
-          <input type="checkbox" id="log-requests">
-          <span class="slider round"></span>
-        </label>
-      </div>
-
-      <div class="logs-container" id="logs-container">
-        <!-- Logs will be added here dynamically -->
-      </div>
-    </div>
-
     <div class="tab-content" id="settings">
       <div class="form-group">
-        <label
-          data-tooltip="Optional: Add a Google Maps API key to enable visual map interface and global address search">
-          Google Maps Integration
-        </label>
+        <label for="api-key">Google Maps API Key (optional)</label>
+        <input type="text" id="api-key" placeholder="Enter your API key">
+        <button id="save-api-key">Save API Key</button>
+        <p id="api-key-status"></p>
       </div>
-      <p class="settings-description">Adding a Google Maps API key enables:</p>
-      <ul class="features-list">
-        <li>🗺️ Visual map interface</li>
-        <li>🔍 Global address search</li>
-        <li>✨ Location autocomplete</li>
-      </ul>
-      <div class="setup-steps">
-        <p>To get your API key:</p>
-        <ol>
-          <li>Visit the <a href="https://console.cloud.google.com/google/maps-apis/overview" target="_blank"
-              rel="noopener noreferrer">Google Cloud Console</a></li>
-          <li>Create/select a project</li>
-          <li>Enable Maps JavaScript API</li>
-          <li>Create credentials (API key)</li>
-        </ol>
-      </div>
-      <div class="form-group">
-        <label for="api-key">API Key:</label>
-        <input type="text" id="api-key" placeholder="Paste your Google Maps API key">
-      </div>
-      <button id="save-api-key" class="button-primary">Save API Key</button>
-      <p id="api-key-status"></p>
     </div>
   </div>
 
