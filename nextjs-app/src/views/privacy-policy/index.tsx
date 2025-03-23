@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Globe } from 'lucide-react';
@@ -24,7 +23,11 @@ const dutchContent = {
       content: 'Alle gegevens worden lokaal op uw apparaat opgeslagen en worden niet gedeeld met derden.'
     },
     {
-      title: '5. Contact',
+      title: '5. Browser Permissies',
+      content: 'De extensie gebruikt de activeTab-permissie om:\n- Locatie-override alleen toe te passen op het actieve tabblad wanneer expliciet gevraagd\n- De geolocation API alleen aan te passen op verzoek van de gebruiker\n- De privacy te waarborgen door alleen toegang te vragen tot actieve tabs\n\nDeze permissie wordt alleen gebruikt wanneer u de locatie-override functie activeert.'
+    },
+    {
+      title: '6. Contact',
       content: 'Voor vragen over dit privacybeleid kunt u contact opnemen via: contact@remcostoeten.com'
     }
   ]
@@ -50,7 +53,11 @@ const englishContent = {
       content: 'All data is stored locally on your device and is not shared with third parties.'
     },
     {
-      title: '5. Contact',
+      title: '5. Browser Permissions',
+      content: 'The extension uses the activeTab permission to:\n- Apply location override only to the active tab when explicitly requested\n- Modify the geolocation API only when requested by the user\n- Ensure privacy by only requesting access to active tabs\n\nThis permission is only used when you activate the location override feature.'
+    },
+    {
+      title: '6. Contact',
       content: 'For questions about this privacy policy, you can contact us at: contact@remcostoeten.com'
     }
   ]

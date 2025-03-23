@@ -7,8 +7,8 @@ import { Button } from '@/components/ui/button';
 import { PauseCircle, PlayCircle, RefreshCw } from 'lucide-react';
 import Footer from '@/components/footer-component';
 
-// Always use this token
-const MAPBOX_TOKEN = 'pk.eyJ1IjoicmVtY29zdG9ldGVuIiwiYSI6ImNtNDM2NzhleDA4c2MybHF4bGRhYXU2bjUifQ.sjFSU2RR7pYPXPhRX_dveQ';
+// Always use this token from environment variable
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 const LocationTracker: React.FC = () => {
   return <LocationTrackerContent mapboxToken={MAPBOX_TOKEN} />;

@@ -1,6 +1,13 @@
 # Release Notes
 
-## v2.1.1 (Latest)
+## v2.1.2 (Latest)
+
+### Security & Privacy
+- Added detailed justification for activeTab permission
+- Improved privacy practices documentation
+- Enhanced permission handling for better user security
+
+## v2.1.1
 
 ### Improvements
 - Migrated file naming convention to kebab case for better consistency

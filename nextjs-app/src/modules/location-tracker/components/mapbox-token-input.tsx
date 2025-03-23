@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,7 @@ interface MapboxTokenInputProps {
 }
 
 // Default token to use if user doesn't enter their own
-const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoicmVtY29zdG9ldGVuIiwiYSI6ImNtNDM2NzhleDA4c2MybHF4bGRhYXU2bjUifQ.sjFSU2RR7pYPXPhRX_dveQ';
+const DEFAULT_MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
 const MapboxTokenInput: React.FC<MapboxTokenInputProps> = ({ onTokenSubmit }) => {
   const [token, setToken] = useState('');

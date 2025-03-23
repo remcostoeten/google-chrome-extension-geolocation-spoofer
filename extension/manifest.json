@@ -1,16 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Geolocation Manager",
-  "version": "2.1.0",
+  "version": "2.1.2",
   "description": "Override your browser's geolocation with custom coordinates or saved locations",
   "permissions": [
     "geolocation",
     "storage",
-    "scripting"
+    "scripting",
+    "activeTab"
   ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "host_permissions": [],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
