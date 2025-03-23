@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Geolocation Manager</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>Geolocation Manager</h1>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="basic">Basic</button>
+        <button class="tab-btn" data-tab="profiles">Profiles</button>
+        <button class="tab-btn" data-tab="settings">Settings</button>
+      </div>
+
+      <div class="tab-content active" id="basic">
+        <div class="override-toggle">
+          <label class="toggle-label" for="enabled">
+            Enable Location Override
+          </label>
+          <label class="switch">
+            <input type="checkbox" id="enabled" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <button id="get-current-location">Get Current Location</button>
+
+        <div class="form-group">
+          <label for="location-input"> Location </label>
+          <div class="location-input-wrapper">
+            <input
+              type="text"
+              id="location-input"
+              placeholder="City name, address, or coordinates"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px">
+          <div class="form-group">
+            <label for="latitude"> Latitude </label>
+            <input
+              type="number"
+              id="latitude"
+              step="0.000001"
+              min="-90"
+              max="90"
+            />
+          </div>
+          <div class="form-group">
+            <label for="longitude"> Longitude </label>
+            <input
+              type="number"
+              id="longitude"
+              step="0.000001"
+              min="-180"
+              max="180"
+            />
+          </div>
+        </div>
+
+        <button id="set-location">Set Location</button>
+      </div>
+
+      <div class="tab-content" id="profiles">
+        <button id="export-profiles">Export Profiles</button>
+        <button id="import-profiles">Import Profiles</button>
+        <input
+          type="file"
+          id="import-file"
+          accept=".json"
+          style="display: none"
+        />
+
+        <div class="profiles-list" id="profiles-list">
+          <!-- Profiles will be added here dynamically -->
+        </div>
+        <div class="form-group">
+          <input type="text" id="profile-name" placeholder="Profile name" />
+          <button id="save-profile">Save Current Location</button>
+        </div>
+      </div>
+
+      <div class="tab-content" id="settings">
+        <div class="form-group">
+          <div class="override-toggle">
+            <label class="toggle-label" for="show-hints">
+              Show Helpful Hints
+            </label>
+            <label class="switch">
+              <input type="checkbox" id="show-hints" checked />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <footer class="footer">
+      <div class="footer-content">
+        <div class="credits">
+          Made with ♥ by
+          <a href="https://github.com/remcostoeten" target="_blank"
+            >@remcostoeten</a
+          >
+        </div>
+        <div class="links">
+          <a
+            href="https://github.com/remcostoeten/geolocation-manager"
+            target="_blank"
+            >GitHub</a
+          >
+          •
+          <a href="https://github.com/remcostoeten" target="_blank"
+            >Developer</a
+          >
+        </div>
+      </div>
+    </footer>
+    <script src="popup.js"></script>
+  </body>
+</html>

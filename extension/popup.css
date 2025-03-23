@@ -1,0 +1,518 @@
+:root {
+  --primary: #ffffff;
+  --surface: #1a1a1a;
+  --surface-hover: #2a2a2a;
+  --border: #333333;
+  --text: #ffffff;
+  --text-secondary: #999999;
+  --input-bg: #242424;
+  --radius: 4px; /* Changed from 8px where it was defined and never changed*/
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, sans-serif;
+  background-color: var(--surface);
+  color: var(--text);
+  min-width: 320px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  flex: 1;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+h1 {
+  text-align: center;
+  margin: 0 0 24px;
+  font-size: 24px;
+  color: var(--text);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--text-secondary);
+  padding: 8px 16px;
+}
+
+.tab-btn:hover {
+  background: transparent;
+  color: var(--text);
+  border-bottom: 2px solid var(--text-secondary);
+}
+
+.tab-btn.active {
+  background: transparent;
+  color: var(--text);
+  border-bottom: 2px solid var(--primary);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 8px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  box-sizing: border-box;
+  outline: none;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus {
+  border-color: var(--primary);
+}
+
+button {
+  background-color: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background-color: var(--surface-hover);
+  border-color: #333
+}
+
+button.active {
+  border-color: var(--text);
+  background: var(--surface-hover);
+}
+
+.profiles-list {
+  margin-bottom: 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.profile-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+  background: var(--surface);
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  margin-right: 12px;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profile-info span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.profile-buttons {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.profile-buttons button {
+  padding: 4px 12px;
+  min-width: 60px;
+  font-size: 0.9em;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+
+.profile-buttons button:hover {
+  background: var(--surface-hover);
+  border-color: var(--text);
+}
+
+/* Export/Import buttons container */
+.profile-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.profile-actions button {
+  flex: 1;
+}
+
+.footer {
+  background-color: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.credits {
+  color: var(--text-secondary);
+}
+
+.links {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.footer a {
+  color: var(--text);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.footer a:hover {
+  opacity: 0.8;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-secondary);
+}
+
+/* Tooltip styles */
+label[data-tooltip] {
+  cursor: help;
+  position: relative;
+}
+
+label[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 0;
+  top: 100%;
+  background-color: var(--surface-hover);
+  color: var(--text);
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  width: max-content;
+  max-width: 200px;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  z-index: 10;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border);
+  line-height: 1.4;
+  transform: translateY(0); /* Fix for initial transform */
+}
+
+label[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0.5rem);
+}
+
+/* Dropdown styles */
+datalist {
+  position: absolute;
+  max-height: 300px;
+  overflow-y: auto;
+  width: 100%;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 4px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+option {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: var(--text);
+  transition: background-color 0.2s ease;
+}
+
+option:hover {
+  background-color: var(--surface-hover);
+}
+
+/* Loading indicator for location input */
+.location-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.location-input-wrapper::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--primary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  animation: spin 0.6s linear infinite;
+}
+
+.location-input-wrapper.loading::after {
+  opacity: 1;
+}
+
+/* Animations */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Switch styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 26px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--surface);
+  transition:
+    background-color 0.3s ease-in-out,
+    border-color 0.3s ease-in-out;
+  border-radius: 34px;
+  border: 2px solid var(--border);
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 2px;
+  background-color: var(--text-secondary);
+  transition:
+    transform 0.3s ease-in-out,
+    background-color 0.3s ease-in-out;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Active state styling - Adjusted for contrast */
+input:checked + .slider {
+  background-color: #303030; /* Slightly darker than surface */
+  border-color: var(--primary); /* Use primary for border */
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+  background-color: var(--primary); /* Use primary for the inner circle */
+}
+
+/* Hover effects */
+.slider:hover {
+  border-color: var(--text-secondary);
+}
+
+input:checked + .slider:hover {
+  opacity: 0.9;
+}
+
+input:focus + .slider {
+  box-shadow:
+    0 0 0 2px var(--surface),
+    0 0 0 4px var(--primary);
+}
+
+/* Status message styles */
+.status-message {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -24px;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  animation: slideIn 0.2s ease;
+}
+
+.status-message.error {
+  background: rgba(255, 0, 0, 0.1);
+  color: #ff4444;
+}
+
+.status-message.success {
+  background: rgba(0, 255, 0, 0.1);
+  color: #00ff00;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-1rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+  body {
+    width: 100%;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+/* Override-toggle Styles */
+.override-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.toggle-label {
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* Location input */
+.location-input-wrapper.loading::after {
+  opacity: 1;
+}
+
+/* Toast Styles */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+.toast {
+  background-color: var(--surface);
+  color: var(--text);
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-top: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  min-width: 200px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.toast.success {
+  color: #00ff00; /* Example success color */
+}
+
+.toast.error {
+  color: #ff4444; /* Example error color */
+}
+
+/* Action buttons (Set Location, Get Current Location, etc.) */
+.action-button {
+  width: 100%;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+
+/* Profile action buttons */
+.profile-actions button {
+  padding: 4px 8px;
+  min-width: 60px;
+  border: 1px solid var(--border);
+}
+
+/* Override any inline styles */
+button[style*="border"] {
+  border: 1px solid var(--border) !important;
+}
