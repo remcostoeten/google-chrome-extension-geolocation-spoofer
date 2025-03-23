@@ -79,38 +79,42 @@ function renderLogs() {
 }
 
 function updateUIElements() {
-  document.getElementById("enabled").checked = settings.enabled
-  document.getElementById("latitude").value = settings.latitude.toFixed(6)
-  document.getElementById("longitude").value = settings.longitude.toFixed(6)
-  document.getElementById("accuracy").value = settings.accuracy
-  document.getElementById("accuracy-value").textContent = settings.accuracy
-  document.getElementById("random-enabled").checked = settings.randomEnabled
-  document.getElementById("random-radius").value = settings.randomRadius
-  document.getElementById("random-radius-value").textContent = settings.randomRadius
-  document.getElementById("log-requests").checked = settings.logRequests
+  document.getElementById("enabled").checked = settings.enabled;
+  document.getElementById("latitude").value = settings.latitude.toFixed(6);
+  document.getElementById("longitude").value = settings.longitude.toFixed(6);
+  document.getElementById("accuracy").value = settings.accuracy;
+  document.getElementById("accuracy-value").textContent = settings.accuracy;
+  document.getElementById("random-enabled").checked = settings.randomEnabled;
+  document.getElementById("random-radius").value = settings.randomRadius;
+  document.getElementById("random-radius-value").textContent = settings.randomRadius;
+  document.getElementById("log-requests").checked = settings.logRequests;
 
-  // Try to find matching city for current coordinates
-  const matchingCity = cities.find(city =>
-    Math.abs(city.lat - settings.latitude) < 0.01 &&
-    Math.abs(city.lng - settings.longitude) < 0.01
-  )
-
-  const locationInput = document.getElementById("location-input")
-  if (matchingCity) {
-    locationInput.value = `${matchingCity.name}, ${matchingCity.country}`
-  } else {
-    locationInput.value = `${settings.latitude.toFixed(4)}, ${settings.longitude.toFixed(4)}`
+  const locationInput = document.getElementById("location-input");
+  // Show the saved location name if it exists
+  if (locationInput && settings.lastLocationName) {
+    locationInput.value = settings.lastLocationName;
+  } else if (locationInput) {
+    // Try to get location name
+    ensureLocationName(settings.latitude, settings.longitude)
+      .then(locationName => {
+        const countryCode = getCountryCodeFromAddress(locationName);
+        const flag = countryCode ? getCountryFlag(countryCode) : '';
+        locationInput.value = flag ? `${flag} ${locationName}` : locationName;
+        settings.lastLocationName = locationInput.value;
+        saveSettings();
+      })
+      .catch(() => {
+        // Fallback to coordinates if location name lookup fails
+        locationInput.value = `${settings.latitude.toFixed(6)}, ${settings.longitude.toFixed(6)}`;
+      });
   }
 
   // Update map if available
   if (map && marker) {
-    const position = new google.maps.LatLng(settings.latitude, settings.longitude)
-    marker.setPosition(position)
-    map.setCenter(position)
+    const position = new google.maps.LatLng(settings.latitude, settings.longitude);
+    marker.setPosition(position);
+    map.setCenter(position);
   }
-
-  // Save settings
-  saveSettings()
 }
 
 function initializeMap() {
@@ -122,28 +126,49 @@ function initializeMap() {
 function loadSettings() {
   chrome.storage.local.get(["geoSettings", "geoProfiles", "geoLogs", "googleMapsApiKey"], (result) => {
     if (result.geoSettings) {
-      settings = { ...settings, ...result.geoSettings }
-      updateUI()
+      settings = { ...settings, ...result.geoSettings };
+      
+      // Restore the location name if it exists
+      const locationInput = document.getElementById("location-input");
+      if (locationInput && settings.lastLocationName) {
+        locationInput.value = settings.lastLocationName;
+      } else if (locationInput) {
+        // If no saved name, try to get location name from coordinates
+        ensureLocationName(settings.latitude, settings.longitude)
+          .then(locationName => {
+            const countryCode = getCountryCodeFromAddress(locationName);
+            const flag = countryCode ? getCountryFlag(countryCode) : '';
+            locationInput.value = flag ? `${flag} ${locationName}` : locationName;
+            settings.lastLocationName = locationInput.value;
+            saveSettings();
+          })
+          .catch(() => {
+            // Fallback to coordinates if location name lookup fails
+            locationInput.value = `${settings.latitude.toFixed(6)}, ${settings.longitude.toFixed(6)}`;
+          });
+      }
+      
+      updateUI();
     }
 
     if (result.geoProfiles) {
-      profiles = result.geoProfiles
-      renderProfiles()
+      profiles = result.geoProfiles;
+      renderProfiles();
     }
 
     if (result.geoLogs) {
-      logs = result.geoLogs
-      renderLogs()
+      logs = result.geoLogs;
+      renderLogs();
     }
 
     if (result.googleMapsApiKey) {
-      googleMapsApiKey = result.googleMapsApiKey
-      document.getElementById("api-key").value = googleMapsApiKey
+      googleMapsApiKey = result.googleMapsApiKey;
+      document.getElementById("api-key").value = googleMapsApiKey;
       if (googleMapsApiKey) {
-        loadGoogleMapsScript()
+        loadGoogleMapsScript();
       }
     }
-  })
+  });
 }
 
 function saveApiKey() {
@@ -390,11 +415,28 @@ function setupCitySearch() {
   }
 
   function selectLocation(suggestion) {
-    locationInput.value = suggestion.display;
+    // Create display string with flag and name
+    const flag = suggestion.country ? getCountryFlag(suggestion.country) : '';
+    const displayString = flag ? `${flag} ${suggestion.display}` : suggestion.display;
+    
+    // Update input with location name and flag
+    locationInput.value = displayString;
     settings.latitude = suggestion.lat;
     settings.longitude = suggestion.lng;
+    settings.lastLocationName = displayString; // Store the display string with flag
     suggestionsContainer.style.display = 'none';
-    updateUIElements();
+    
+    // Update specific UI elements
+    document.getElementById("latitude").value = settings.latitude.toFixed(6);
+    document.getElementById("longitude").value = settings.longitude.toFixed(6);
+    
+    // Update map if available
+    if (map && marker) {
+      const position = new google.maps.LatLng(settings.latitude, settings.longitude);
+      marker.setPosition(position);
+      map.setCenter(position);
+    }
+    
     saveSettings();
     showStatus('Location updated', 'success');
   }
@@ -513,7 +555,7 @@ async function searchDutchAddresses(query) {
   }
 }
 
-// Update setLocationFromInput to handle errors better
+// Modify setLocationFromInput to show coordinates only when setting location
 async function setLocationFromInput() {
   const input = document.getElementById("location-input").value.trim();
   const datalist = document.getElementById("city-suggestions");
@@ -529,7 +571,14 @@ async function setLocationFromInput() {
       if (!isNaN(lat) && !isNaN(lng)) {
         settings.latitude = lat;
         settings.longitude = lng;
-        updateUIElements();
+        // Get location name instead of showing coordinates
+        const locationName = await ensureLocationName(lat, lng);
+        const countryCode = getCountryCodeFromAddress(locationName);
+        const flag = countryCode ? getCountryFlag(countryCode) : '';
+        const displayString = flag ? `${flag} ${locationName}` : locationName;
+        document.getElementById("location-input").value = displayString;
+        settings.lastLocationName = displayString;
+        updateUI();
         saveSettings();
         return;
       }
@@ -541,8 +590,14 @@ async function setLocationFromInput() {
       const firstResult = suggestions[0];
       settings.latitude = parseFloat(firstResult.lat);
       settings.longitude = parseFloat(firstResult.lng);
-      document.getElementById("location-input").value = firstResult.display;
-      updateUIElements();
+      // Get location name instead of showing coordinates
+      const locationName = await ensureLocationName(settings.latitude, settings.longitude);
+      const countryCode = getCountryCodeFromAddress(locationName);
+      const flag = countryCode ? getCountryFlag(countryCode) : '';
+      const displayString = flag ? `${flag} ${locationName}` : locationName;
+      document.getElementById("location-input").value = displayString;
+      settings.lastLocationName = displayString;
+      updateUI();
       saveSettings();
       return;
     }
@@ -552,7 +607,14 @@ async function setLocationFromInput() {
     if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
       settings.latitude = coords[0];
       settings.longitude = coords[1];
-      updateUIElements();
+      // Get location name instead of showing coordinates
+      const locationName = await ensureLocationName(settings.latitude, settings.longitude);
+      const countryCode = getCountryCodeFromAddress(locationName);
+      const flag = countryCode ? getCountryFlag(countryCode) : '';
+      const displayString = flag ? `${flag} ${locationName}` : locationName;
+      document.getElementById("location-input").value = displayString;
+      settings.lastLocationName = displayString;
+      updateUI();
       saveSettings();
     } else {
       throw new Error("Invalid location format");
@@ -594,9 +656,14 @@ function deleteProfile(index) {
 }
 
 function saveSettings() {
+  const locationInput = document.getElementById("location-input");
+  if (locationInput) {
+    settings.lastLocationName = locationInput.value;
+  }
+  
   chrome.storage.local.set({ geoSettings: settings }, () => {
-    console.log("Settings saved", settings)
-  })
+    console.log("Settings saved", settings);
+  });
 }
 
 async function getCurrentLocation() {
@@ -641,17 +708,28 @@ async function getCurrentLocation() {
     settings.longitude = position.coords.longitude;
     settings.accuracy = Math.round(position.coords.accuracy);
 
-    // Try to get the location name
-    try {
-      const locationName = await ensureLocationName(settings.latitude, settings.longitude);
-      locationInput.value = locationName;
-    } catch (error) {
-      // Fallback to coordinates if location name lookup fails
-      locationInput.value = `${settings.latitude.toFixed(6)}, ${settings.longitude.toFixed(6)}`;
+    // Always get and show the location name with flag
+    const locationName = await ensureLocationName(settings.latitude, settings.longitude);
+    const countryCode = getCountryCodeFromAddress(locationName);
+    const flag = countryCode ? getCountryFlag(countryCode) : '';
+    const displayString = flag ? `${flag} ${locationName}` : locationName;
+    locationInput.value = displayString;
+    settings.lastLocationName = displayString;
+
+    // Update specific UI elements without changing the location input
+    document.getElementById("latitude").value = settings.latitude.toFixed(6);
+    document.getElementById("longitude").value = settings.longitude.toFixed(6);
+    document.getElementById("accuracy").value = settings.accuracy;
+    document.getElementById("accuracy-value").textContent = settings.accuracy;
+
+    // Update map if available
+    if (map && marker) {
+      const position = new google.maps.LatLng(settings.latitude, settings.longitude);
+      marker.setPosition(position);
+      map.setCenter(position);
     }
 
-    // Update UI and save
-    await updateUIElements();
+    // Save settings
     saveSettings();
 
     // Show success message
