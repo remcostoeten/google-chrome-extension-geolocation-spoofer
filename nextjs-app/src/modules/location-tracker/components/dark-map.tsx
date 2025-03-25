@@ -1,5 +1,4 @@
-
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, Suspense } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Location, MapOptions } from '../types';
@@ -11,6 +10,7 @@ interface DarkMapProps {
   currentLocation?: Location;
   mapboxToken: string;
   onMapLoad?: () => void;
+}
 }
 
 // Map styles
