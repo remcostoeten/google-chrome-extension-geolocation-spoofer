@@ -11,11 +11,10 @@ interface DarkMapProps {
   mapboxToken: string;
   onMapLoad?: () => void;
 }
-}
 
-// Map styles
-const MAP_STYLES = {
-  dark: 'mapbox://styles/mapbox/dark-v11',
+// Lazy load map styles
+const mapStyle = {
+  dark: 'mapbox://styles/mapbox/dark-v11'
 };
 
 const DEFAULT_MAPBOX_TOKEN = 'YOUR_MAPBOX_TOKEN';
@@ -24,8 +23,8 @@ const DEFAULT_MAP_OPTIONS: MapOptions = {
   zoom: 13,
   minZoom: 2,
   maxZoom: 18,
-  center: [0, 0], // Default center, will be updated with current location
-  style: MAP_STYLES.dark,
+  center: [0, 0],
+  style: mapStyle.dark,
 };
 
 const DarkMap: React.FC<DarkMapProps> = ({ 
@@ -242,4 +241,10 @@ const DarkMap: React.FC<DarkMapProps> = ({
   );
 };
 
-export default DarkMap;
+export default function MapWrapper() {
+  return (
+    <Suspense fallback={<div className="h-[500px] animate-pulse bg-muted" />}>
+      <DarkMap />
+    </Suspense>
+  );
+}
