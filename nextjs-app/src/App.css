@@ -1,3 +1,20 @@
+.animate-pulser {
+  animation: pulser 2s infinite linear; /* Added ease-in-out */
+  transform: scale(1);
+  opacity: 0; /* Starts invisible */
+}
+@keyframes pulser {
+  from {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}body {
+  background: (--darkreader-background-0c0a09, #0a0807)!important;}
 #root {
   max-width: 1280px;
   margin: 0 auto;

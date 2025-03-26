@@ -10,7 +10,6 @@ import React, { Suspense, lazy } from 'react';
 
 const queryClient = new QueryClient();
 
-// Lazy load routes
 const LazyIndex = lazy(() => import('./pages/index'));
 const LazyNotFound = lazy(() => import('./pages/not-found'));
 const LazyPrivacyPolicy = lazy(() => import('./pages/privacy-policy'));

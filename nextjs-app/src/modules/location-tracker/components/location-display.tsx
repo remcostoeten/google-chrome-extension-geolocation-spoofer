@@ -1,70 +1,139 @@
+import React, { Suspense, lazy, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { PauseCircle, PlayCircle, RefreshCw } from 'lucide-react';
+import Footer from '@/components/footer-component';
+import HistoryList from './history-list';
+import useLocationTracker from '../hooks/use-location-tracker';
 
-import React from 'react';
-import { Location } from '../types';
-import { formatCoordinates } from '../lib/geo-services';
-import { format } from 'date-fns';
-import { MapPin, Clock, Globe } from 'lucide-react';
+// Lazy load components with correct paths
+const LazyDarkMap = lazy(() => import('./dark-map'));
+const LazyLocationDisplay = lazy(() => import('./location-display'));
+const LazyHistoryList = lazy(() => import('./history-list'));
+const MapSkeleton = lazy(() => import('./map-skeleton'));
 
-interface LocationDisplayProps {
-  location: Location;
-  isLoading?: boolean;
+// Always use this token from environment variable
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
+
+const LocationTracker: React.FC = () => {
+  return <LocationTrackerContent mapboxToken={MAPBOX_TOKEN} />;
+};
+
+interface LocationTrackerContentProps {
+  mapboxToken: string;
 }
 
-const LocationDisplay: React.FC<LocationDisplayProps> = ({ 
-  location, 
-  isLoading = false 
-}) => {
-  if (isLoading) {
-    return (
-      <div className="bg-card border border-border p-4 animate-pulse">
-        <div className="h-4 bg-muted rounded w-1/3 mb-2"></div>
-        <div className="h-6 bg-muted rounded w-2/3 mb-4"></div>
-        <div className="space-y-2">
-          <div className="h-4 bg-muted rounded w-full"></div>
-          <div className="h-4 bg-muted rounded w-2/3"></div>
-          <div className="h-4 bg-muted rounded w-3/4"></div>
-        </div>
-      </div>
-    );
-  }
+const LocationTrackerContent: React.FC<LocationTrackerContentProps> = ({ mapboxToken }) => {
+  const {
+    locations,
+    currentLocation,
+    isLoading,
+    status,
+    isWatching,
+    startTracking,
+    stopTracking,
+    updateCurrentPosition,
+    clearHistory,
+    selectLocation,
+  } = useLocationTracker({ mapboxToken, autoStart: true });
+
+  const handleToggleTracking = () => {
+    if (isWatching) {
+      stopTracking();
+    } else {
+      startTracking();
+    }
+  };
+
+  const handleRefresh = () => {
+    updateCurrentPosition();
+  };
 
   return (
-    <div className="bg-card border border-border p-4 animate-fade-in">
-      <div className="flex flex-col space-y-3">
-        <div>
-          <div className={`status-indicator ${location.status ? `status-${location.status}` : 'status-active'}`}>
-            <span className="text-xs font-medium tracking-wider uppercase">
-              {location.status === 'pending' ? 'Locating...' : 
-               location.status === 'inactive' ? 'Inactive' : 'Active'}
-            </span>
-          </div>
-          <h2 className="text-xl font-medium mt-1">
-            {location.city || 'Unknown Location'}
-            {location.country ? `, ${location.country}` : ''}
-          </h2>
-        </div>
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="container mx-auto px-4 py-8 flex-1">
+        <header className="mb-6 animate-fade-in">
+          <HistoryList 
+            locations={locations} 
+            onSelect={selectLocation} 
+            onClear={clearHistory} 
+          />  
+          <p className="text-muted-foreground">
+            Track and visualize your current and historical locations
+          </p>
+        </header>
 
-        <div className="space-y-2">
-          <div className="flex items-center text-sm text-muted-foreground">
-            <MapPin size={16} className="mr-2" />
-            <span>{formatCoordinates(location.latitude, location.longitude)}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+            {/* Map Container */}
+,             <Suspense fallback={<MapSkeleton />}>
+              <LazyDarkMap
+                locations={locations}
+                currentLocation={currentLocation}
+                mapboxToken={mapboxToken}
+              />
+            </Suspense>
+            <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+            <Suspense fallback={<div className="bg-card border border-border p-4 " />}>
+              {currentLocation ? (
+                <LazyLocationDisplay
+                  location={currentLocation}
+                  isLoading={isLoading}
+                />
+              ) : (
+                <div className="bg-card border border-border p-4 text-center">
+                  <p className="text-muted-foreground">No location data available</p>
+                </div>
+              )}
+            </Suspense>
+
+            {/* Location History */}
+            <Suspense fallback={<div className="bg-card border border-border p-4 animate-pulser" />}>
+              <LazyHistoryList
+                locations={locations}
+                onSelect={selectLocation}
+                onClear={clearHistory}
+                isLoading={isLoading && locations.length === 0}
+              />
+            </Suspense>
           </div>
-          
-          <div className="flex items-center text-sm text-muted-foreground">
-            <Clock size={16} className="mr-2" />
-            <span>{format(new Date(location.timestamp), 'MMM d, yyyy - h:mm:ss a')}</span>
-          </div>
-          
-          {location.country && (
-            <div className="flex items-center text-sm text-muted-foreground">
-              <Globe size={16} className="mr-2" />
-              <span>{location.country}</span>
+            {/* Action Buttons */}
+            <div className="flex gap-4">
+              <Button
+                variant="outline"
+                onClick={handleToggleTracking}
+                className="flex-1 border-border hover:bg-secondary/80 transition-all duration-300"
+              >
+                {isWatching ? (
+                  <>
+                    <PauseCircle className="mr-2 h-4 w-4" />
+                    Stop Tracking
+                  </>
+                ) : (
+                  <>
+                    <PlayCircle className="mr-2 h-4 w-4" />
+                    Start Tracking
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={handleRefresh}
+                className="border-border hover:bg-secondary/80 transition-all duration-300"
+                disabled={isLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                <span className="ml-2">Refresh</span>
+              </Button>
             </div>
-          )}
+          </div>
+
+        
         </div>
       </div>
+      <Footer />
     </div>
   );
 };
 
-export default LocationDisplay;
+export default LocationTracker;

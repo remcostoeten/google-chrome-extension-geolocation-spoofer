@@ -42,7 +42,6 @@ const HistoryList: React.FC<HistoryListProps> = ({
   if (locations.length === 0) {
     return (
       <div className="bg-card border border-border p-4">
-        <h3 className="font-medium mb-4">Location History</h3>
         <div className="p-3 border border-border bg-secondary/30 text-center text-sm text-muted-foreground">
           No location history available.
         </div>

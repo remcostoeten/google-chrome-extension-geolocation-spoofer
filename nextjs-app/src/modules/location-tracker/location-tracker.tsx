@@ -101,20 +101,8 @@ const LocationTrackerContent: React.FC<LocationTrackerContentProps> = ({ mapboxT
 
           <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             {/* Current Location */}
-            <Suspense fallback={<div className="bg-card border border-border p-4 animate-pulse" />}>
-              {currentLocation ? (
-                <LazyLocationDisplay
-                  location={currentLocation}
-                  isLoading={isLoading}
-                />
-              ) : (
-                <div className="bg-card border border-border p-4 text-center">
-                  <p className="text-muted-foreground">No location data available</p>
-                </div>
-              )}
-            </Suspense>
+        
 
-            {/* Location History */}
             <Suspense fallback={<div className="bg-card border border-border p-4 animate-pulse" />}>
               <LazyHistoryList
                 locations={locations}

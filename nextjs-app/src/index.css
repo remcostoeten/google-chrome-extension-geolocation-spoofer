@@ -1,10 +1,31 @@
-#root {
+.inner {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
   text-align: center;
 }
 
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #111;
+  border: 1px solid #222;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #222;
+  border-radius: 1rem
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #555
+
+}
+
+body {
+  background: (--darkreader-background-0c0a09, #0a0807)!important;}
 @keyframes logo-spin {
   from {
     transform: rotate(0deg);
