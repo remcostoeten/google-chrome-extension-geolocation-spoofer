@@ -73,12 +73,14 @@ const useLocationTracker = ({ mapboxToken, autoStart = true }: UseLocationTracke
         longitude,
         city: geocodingResult.city,
         country: geocodingResult.country,
-        timestamp: Date.now(),
+        timestamp: Date.now().toString(),
         status: 'active',
       };
-      
-      // Update current location
-      setCurrentLocation(newLocation);
+      if (newLocation === currentLocation) {
+        return newLocation;
+      } else {
+        setCurrentLocation(newLocation);
+}      // Update current location
       
       // Add to history
       const updatedLocations = addLocationToHistory(newLocation);

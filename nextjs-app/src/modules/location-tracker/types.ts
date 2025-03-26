@@ -1,14 +1,12 @@
-
 export interface Location {
   id: string;
   latitude: number;
   longitude: number;
+  timestamp: string;
+  status?: 'active' | 'inactive' | 'pending';
   city?: string;
   country?: string;
-  timestamp: number;
-  status?: LocationStatus;
 }
-
 export type LocationStatus = 'active' | 'inactive' | 'pending';
 
 export interface GeocodingResult {
