@@ -1,8 +1,15 @@
-import React from 'react';
-import PrivacyPolicyView from '../views/privacy-policy';
+import React, { Suspense, lazy } from 'react';
 
-const PrivacyPolicy = () => {
-  return <PrivacyPolicyView />;
+const LocationTracker = lazy(() =>
+  import('../modules/location-tracker/location-tracker')
+);
+
+const Index = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LocationTracker />
+    </Suspense>
+  );
 };
 
-export default PrivacyPolicy;
+export default Index;

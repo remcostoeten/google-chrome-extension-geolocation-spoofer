@@ -1,11 +1,13 @@
-import React from 'react';
-import DarkMap from './components/dark-map';
-import LocationDisplay from './components/location-display';
-import HistoryList from './components/history-list';
-import useLocationTracker from './hooks/use-location-tracker';
+import React, { Suspense, lazy } from 'react';
 import { Button } from '@/components/ui/button';
 import { PauseCircle, PlayCircle, RefreshCw } from 'lucide-react';
 import Footer from '@/components/footer-component';
+import useLocationTracker from './hooks/use-location-tracker';
+
+// Lazy load components
+const LazyDarkMap = lazy(() => import('./components/dark-map'));
+const LazyLocationDisplay = lazy(() => import('./components/location-display'));
+const LazyHistoryList = lazy(() => import('./components/history-list'));
 
 // Always use this token from environment variable
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || '';
@@ -53,20 +55,22 @@ const LocationTrackerContent: React.FC<LocationTrackerContentProps> = ({ mapboxT
             Track and visualize your current and historical locations
           </p>
         </header>
-        
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
             {/* Map Container */}
-            <DarkMap 
-              locations={locations} 
-              currentLocation={currentLocation}
-              mapboxToken={mapboxToken}
-            />
-            
+            <Suspense fallback={<div className="h-[500px] animate-pulse bg-muted" />}>
+              <LazyDarkMap
+                locations={locations}
+                currentLocation={currentLocation}
+                mapboxToken={mapboxToken}
+              />
+            </Suspense>
+
             {/* Action Buttons */}
             <div className="flex gap-4">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleToggleTracking}
                 className="flex-1 border-border hover:bg-secondary/80 transition-all duration-300"
               >
@@ -82,9 +86,9 @@ const LocationTrackerContent: React.FC<LocationTrackerContentProps> = ({ mapboxT
                   </>
                 )}
               </Button>
-              
-              <Button 
-                variant="outline" 
+
+              <Button
+                variant="outline"
                 onClick={handleRefresh}
                 className="border-border hover:bg-secondary/80 transition-all duration-300"
                 disabled={isLoading}
@@ -94,27 +98,31 @@ const LocationTrackerContent: React.FC<LocationTrackerContentProps> = ({ mapboxT
               </Button>
             </div>
           </div>
-          
+
           <div className="space-y-6 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
             {/* Current Location */}
-            {currentLocation ? (
-              <LocationDisplay 
-                location={currentLocation} 
-                isLoading={isLoading} 
-              />
-            ) : (
-              <div className="bg-card border border-border p-4 text-center">
-                <p className="text-muted-foreground">No location data available</p>
-              </div>
-            )}
-            
+            <Suspense fallback={<div className="bg-card border border-border p-4 animate-pulse" />}>
+              {currentLocation ? (
+                <LazyLocationDisplay
+                  location={currentLocation}
+                  isLoading={isLoading}
+                />
+              ) : (
+                <div className="bg-card border border-border p-4 text-center">
+                  <p className="text-muted-foreground">No location data available</p>
+                </div>
+              )}
+            </Suspense>
+
             {/* Location History */}
-            <HistoryList 
-              locations={locations} 
-              onSelect={selectLocation} 
-              onClear={clearHistory}
-              isLoading={isLoading && locations.length === 0}
-            />
+            <Suspense fallback={<div className="bg-card border border-border p-4 animate-pulse" />}>
+              <LazyHistoryList
+                locations={locations}
+                onSelect={selectLocation}
+                onClear={clearHistory}
+                isLoading={isLoading && locations.length === 0}
+              />
+            </Suspense>
           </div>
         </div>
       </div>

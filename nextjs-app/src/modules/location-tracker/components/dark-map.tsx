@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, Suspense } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Location, MapOptions } from '../types';
@@ -12,7 +12,6 @@ interface DarkMapProps {
   onMapLoad?: () => void;
 }
 
-// Lazy load map styles
 const mapStyle = {
   dark: 'mapbox://styles/mapbox/dark-v11'
 };
@@ -27,34 +26,34 @@ const DEFAULT_MAP_OPTIONS: MapOptions = {
   style: mapStyle.dark,
 };
 
-const DarkMap: React.FC<DarkMapProps> = ({ 
-  locations, 
-  currentLocation, 
+const DarkMap: React.FC<DarkMapProps> = ({
+  locations,
+  currentLocation,
   mapboxToken = DEFAULT_MAPBOX_TOKEN,
-  onMapLoad 
+  onMapLoad
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
-  
-  // Initialize Mapbox
-  useEffect(() => {
+
+  // useCallback for map initialization
+  const initializeMap = useCallback(() => {
     if (mapboxToken === DEFAULT_MAPBOX_TOKEN) {
       console.error('Please provide a valid Mapbox token');
       return;
     }
-    
+
     if (!mapContainer.current || map.current) return;
-    
+
     mapboxgl.accessToken = mapboxToken;
-    
+
     const options = { ...DEFAULT_MAP_OPTIONS };
-    
+
     if (currentLocation) {
       options.center = [currentLocation.longitude, currentLocation.latitude];
     }
-    
+
     const mapInstance = new mapboxgl.Map({
       container: mapContainer.current,
       ...options,
@@ -102,8 +101,13 @@ const DarkMap: React.FC<DarkMapProps> = ({
     };
   }, [mapboxToken, currentLocation, onMapLoad]);
 
-  // Update markers when locations change
+  // Initialize Mapbox
   useEffect(() => {
+    return initializeMap();
+  }, [initializeMap]);
+
+  // Update markers when locations change
+  const updateMarkers = useCallback(() => {
     if (!map.current) return;
 
     // Remove old markers not in the current locations
@@ -125,7 +129,7 @@ const DarkMap: React.FC<DarkMapProps> = ({
         // Create marker elements
         const markerEl = document.createElement('div');
         markerEl.className = 'map-pin';
-        
+
         const markerInner = document.createElement('div');
         markerInner.className = 'map-pin__inner';
         markerEl.appendChild(markerInner);
@@ -148,14 +152,14 @@ const DarkMap: React.FC<DarkMapProps> = ({
           .setLngLat([longitude, latitude])
           .setPopup(popup)
           .addTo(map.current);
-          
+
         markers.current[id] = marker;
 
         // Show popup on hover
         markerEl.addEventListener('mouseenter', () => {
           marker.getPopup().addTo(map.current!);
         });
-        
+
         markerEl.addEventListener('mouseleave', () => {
           marker.getPopup().remove();
         });
@@ -173,6 +177,10 @@ const DarkMap: React.FC<DarkMapProps> = ({
       });
     }
   }, [locations, currentLocation]);
+
+  useEffect(() => {
+    updateMarkers();
+  }, [updateMarkers]);
 
   // Handle fullscreen toggle
   const handleFullscreenToggle = () => {
@@ -195,28 +203,28 @@ const DarkMap: React.FC<DarkMapProps> = ({
 
   return (
     <div className={`relative z-0 w-full transition-all duration-300 ease-in-out ${isFullscreen ? 'h-screen fixed inset-0' : 'h-[500px]'}`}>
-      <div 
-        ref={mapContainer} 
-        className="w-full h-full map-container" 
+      <div
+        ref={mapContainer}
+        className="w-full h-full map-container"
       />
-      
+
       {/* Custom controls */}
       <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-10">
-        <button 
+        <button
           onClick={handleFullscreenToggle}
           className="p-2 bg-card border border-border hover:bg-secondary transition-colors"
         >
           {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
         </button>
 
-        <button 
+        <button
           onClick={handleZoomIn}
           className="p-2 bg-card border border-border hover:bg-secondary transition-colors"
         >
           <Plus size={18} />
         </button>
 
-        <button 
+        <button
           onClick={handleZoomOut}
           className="p-2 bg-card border border-border hover:bg-secondary transition-colors"
         >
@@ -241,10 +249,4 @@ const DarkMap: React.FC<DarkMapProps> = ({
   );
 };
 
-export default function MapWrapper() {
-  return (
-    <Suspense fallback={<div className="h-[500px] animate-pulse bg-muted" />}>
-      <DarkMap />
-    </Suspense>
-  );
-}
+export default DarkMap;

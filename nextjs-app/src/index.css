@@ -1,3 +1,32 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
 
 @tailwind base;
 @tailwind components;
@@ -7,8 +36,10 @@
   :root {
     --background: 20 14.3% 4.1%;
     --foreground: 60 9.1% 97.8%;
-    --card: 20 14.3% 4.1%;
-    --card-foreground: 60 9.1% 97.8%;
+    --page-background: 20 14.3% 4.1%;
+    --text-primary: 60 9.1% 97.8%;
+    --panel-background: 20 14.3% 4.1%;
+    --panel-text: 60 9.1% 97.8%;
     --popover: 20 14.3% 4.1%;
     --popover-foreground: 60 9.1% 97.8%;
     --primary: 47.9 95.8% 53.1%;
@@ -26,20 +57,25 @@
     --ring: 35.5 91.7% 32.9%;
     --radius: 0.5rem;
   }
-}
 
-@layer base {
-  * {
-    @apply border-border;
+  /* Dark mode variables */
+  .dark {
+    --page-background: 20 14.3% 10%;
+    /* Slightly lighter dark background */
+    --text-primary: 60 9.1% 80%;
+    /* Slightly darker text */
+    --panel-background: 20 14.3% 10%;
+    --panel-text: 60 9.1% 80%;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-pageBackground text-textPrimary;
   }
 }
 
 @layer components {
   .glass-panel {
-    @apply bg-card/40 backdrop-blur-md border border-border/50 rounded-md shadow-lg;
+    @apply bg-panelBackground/40 backdrop-blur-md border border-border/50 rounded-md shadow-lg;
   }
 
   .map-pin {
@@ -51,7 +87,9 @@
   }
 
   .shadow-glow {
-    @apply shadow-[0_0_16px_rgba(245,158,11,0.6)];
+    --glow-color: rgba(245, 158, 11, 0.6);
+    --glow-blur: 16px;
+    @apply shadow-[0_0_var(--glow-blur)_var(--glow-color)];
   }
 
   .status-indicator {
@@ -73,35 +111,5 @@
 
   .status-pending::before {
     @apply bg-yellow-500 animate-pulse;
-  }
-}
-
-@layer utilities {
-  .animate-fade-in {
-    animation: fadeIn 0.5s ease-out;
-  }
-
-  .animate-fade-in-up {
-    animation: fadeInUp 0.7s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
   }
 }
