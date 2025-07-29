@@ -2,7 +2,7 @@ export interface Location {
   id: string;
   latitude: number;
   longitude: number;
-  timestamp: string;
+  timestamp: number;
   status?: 'active' | 'inactive' | 'pending';
   city?: string;
   country?: string;

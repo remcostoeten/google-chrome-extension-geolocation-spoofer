@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span>© {new Date().getFullYear()} Location Tracker</span>
+            <span>© {new Date().getFullYear()}</span>
           </div>
           
           <div className="flex flex-wrap items-center gap-4 justify-center">

@@ -9,31 +9,128 @@ export const getCurrentPosition = (): Promise<GeolocationPosition> => {
       return;
     }
     
+    console.log('Requesting geolocation...');
+    
     navigator.geolocation.getCurrentPosition(
-      (position) => resolve(position),
-      (error) => reject(error),
+      (position) => {
+        console.log('Geolocation success:', {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        });
+        resolve(position);
+      },
+      (error) => {
+        console.error('Geolocation error:', {
+          code: error.code,
+          message: error.message,
+          PERMISSION_DENIED: error.code === 1,
+          POSITION_UNAVAILABLE: error.code === 2,
+          TIMEOUT: error.code === 3
+        });
+        
+        let errorMessage = 'Unknown location error';
+        switch (error.code) {
+          case 1:
+            errorMessage = 'Location access denied by user';
+            break;
+          case 2:
+            errorMessage = 'Location position unavailable';
+            break;
+          case 3:
+            errorMessage = 'Location request timeout';
+            break;
+        }
+        
+        reject(new Error(errorMessage));
+      },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   });
 };
 
-// Function to watch position and get updates
+// Function to watch position and get updates with debouncing
 export const watchPosition = (
   onSuccess: (position: GeolocationPosition) => void,
   onError: (error: GeolocationPositionError) => void
 ): () => void => {
   if (!navigator.geolocation) {
-    onError({ code: 0, message: 'Geolocation is not supported', PERMISSION_DENIED: 1, POSITION_UNAVAILABLE: 2, TIMEOUT: 3 } as GeolocationPositionError);
+    onError({ 
+      code: 0, 
+      message: 'Geolocation is not supported by this browser', 
+      PERMISSION_DENIED: 1, 
+      POSITION_UNAVAILABLE: 2, 
+      TIMEOUT: 3 
+    } as GeolocationPositionError);
     return () => {};
   }
   
+  let lastPosition: GeolocationPosition | null = null;
+  let debounceTimeout: NodeJS.Timeout | null = null;
+  
+  const debouncedSuccess = (position: GeolocationPosition) => {
+    // Clear any pending debounced calls
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+    
+    // Check if position has changed significantly
+    if (lastPosition) {
+      const distance = calculateDistance(
+        lastPosition.coords.latitude,
+        lastPosition.coords.longitude,
+        position.coords.latitude,
+        position.coords.longitude
+      );
+      
+      // If change is very small (less than 5 meters), debounce the update
+      if (distance < 0.005) {
+        debounceTimeout = setTimeout(() => {
+          lastPosition = position;
+          onSuccess(position);
+        }, 2000); // 2 second debounce
+        return;
+      }
+    }
+    
+    lastPosition = position;
+    onSuccess(position);
+  };
+  
+  const enhancedError = (error: GeolocationPositionError) => {
+    console.error('Geolocation watch error details:', {
+      code: error.code,
+      message: error.message,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent
+    });
+    
+    onError(error);
+  };
+  
+  console.log('Starting geolocation watch with options:', {
+    enableHighAccuracy: true,
+    timeout: 10000,
+    maximumAge: 5000
+  });
+  
   const watchId = navigator.geolocation.watchPosition(
-    onSuccess,
-    onError,
-    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    debouncedSuccess,
+    enhancedError,
+    { 
+      enableHighAccuracy: true, 
+      timeout: 10000, // Reduced timeout
+      maximumAge: 5000 // Allow cached positions up to 5 seconds old
+    }
   );
   
-  return () => navigator.geolocation.clearWatch(watchId);
+  return () => {
+    console.log('Clearing geolocation watch:', watchId);
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout);
+    }
+    navigator.geolocation.clearWatch(watchId);
+  };
 };
 
 // Function to reverse geocode coordinates (get city, country from lat/lng)

@@ -1,33 +1,51 @@
 // Store the original geolocation methods
-const originalGeolocation = {
+const originalGeolocation = navigator.geolocation ? {
   getCurrentPosition: navigator.geolocation.getCurrentPosition.bind(navigator.geolocation),
   watchPosition: navigator.geolocation.watchPosition.bind(navigator.geolocation),
-};
+} : null;
 
 // Cache for settings to reduce storage reads
 let cachedSettings = null;
+let isInitialized = false;
 
 // Function to get the current override settings
-async function getLocationOverride() {
-  if (cachedSettings) {
-    return cachedSettings;
-  }
+function getLocationOverride() {
+  return new Promise((resolve, reject) => {
+    if (cachedSettings) {
+      resolve(cachedSettings);
+      return;
+    }
 
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ type: 'GET_LOCATION_OVERRIDE' }, (response) => {
-      cachedSettings = response;
-      resolve(response);
-    });
+    try {
+      chrome.runtime.sendMessage({ type: 'GET_LOCATION_OVERRIDE' }, (response) => {
+        if (chrome.runtime.lastError) {
+          console.warn('Extension not available:', chrome.runtime.lastError.message);
+          reject(new Error('Extension not available'));
+          return;
+        }
+        cachedSettings = response || { enabled: false };
+        resolve(cachedSettings);
+      });
+    } catch (error) {
+      console.warn('Failed to communicate with extension:', error);
+      reject(error);
+    }
   });
 }
 
 // Override the geolocation API
-const overrideGeolocation = () => {
+function overrideGeolocation() {
+  if (!navigator.geolocation || !originalGeolocation) {
+    console.warn('Geolocation API not available');
+    return;
+  }
+
   // Override getCurrentPosition
   navigator.geolocation.getCurrentPosition = async function(success, error, options) {
     try {
       const override = await getLocationOverride();
-      if (override.enabled && override.latitude !== null && override.longitude !== null) {
+      if (override && override.enabled && override.latitude !== null && override.longitude !== null) {
+        console.log('Using extension location override:', override.latitude, override.longitude);
         // If override is enabled and has valid coordinates, return them immediately
         success({
           coords: {
@@ -41,13 +59,17 @@ const overrideGeolocation = () => {
           },
           timestamp: Date.now()
         });
-      } else {
-        // If override is disabled or has invalid coordinates, use original geolocation
-        originalGeolocation.getCurrentPosition(success, error, options);
+        return;
       }
     } catch (e) {
-      // If there's any error in the override, fall back to original geolocation
+      console.warn('Extension override failed, using original geolocation:', e.message);
+    }
+    
+    // If override is disabled, has invalid coordinates, or failed, use original geolocation
+    if (originalGeolocation && originalGeolocation.getCurrentPosition) {
       originalGeolocation.getCurrentPosition(success, error, options);
+    } else if (error) {
+      error({ code: 2, message: 'Position unavailable' });
     }
   };
 
@@ -103,7 +125,7 @@ const overrideGeolocation = () => {
       return originalGeolocation.watchPosition(success, error, options);
     }
   };
-};
+}
 
 // Initialize the override
 overrideGeolocation();

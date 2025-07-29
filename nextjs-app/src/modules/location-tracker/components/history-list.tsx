@@ -2,7 +2,7 @@
 import React from 'react';
 import { Location } from '../types';
 import { formatCoordinates } from '../lib/geo-services';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Trash2 } from 'lucide-react';
 
 interface HistoryListProps {
@@ -86,7 +86,7 @@ const HistoryList: React.FC<HistoryListProps> = ({
             </div>
             
             <div className="text-muted-foreground text-xs mt-1">
-              {format(new Date(location.timestamp), 'MMM d, yyyy - h:mm a')}
+{isValid(new Date(location.timestamp)) ? format(new Date(location.timestamp), 'MMM d, yyyy - h:mm a') : 'Invalid Date'}
             </div>
           </div>
         ))}

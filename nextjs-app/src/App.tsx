@@ -15,42 +15,44 @@ const LazyIndex = lazy(() => import('./pages/index'));
 const LazyNotFound = lazy(() => import('./pages/not-found'));
 const LazyPrivacyPolicy = lazy(() => import('./pages/privacy-policy'));
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Suspense fallback={<div>Loading...</div>}>
-                <LazyIndex />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/privacy-policy"
-            element={
-              <Suspense fallback={<div>Loading...</div>}>
-                <LazyPrivacyPolicy />
-              </Suspense>
-            }
-          />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route
-            path="*"
-            element={
-              <Suspense fallback={<div>Loading...</div>}>
-                <LazyNotFound />
-              </Suspense>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Suspense fallback={<div>Loading...</div>}>
+                  <LazyIndex />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/privacy-policy"
+              element={
+                <Suspense fallback={<div>Loading...</div>}>
+                  <LazyPrivacyPolicy />
+                </Suspense>
+              }
+            />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route
+              path="*"
+              element={
+                <Suspense fallback={<div>Loading...</div>}>
+                  <LazyNotFound />
+                </Suspense>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

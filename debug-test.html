@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geolocation Extension Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #005a8b;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <h1>Geolocation Extension Debug Test</h1>
+    <p>This page tests whether your geolocation spoofer extension is working correctly.</p>
+
+    <div class="test-container">
+        <h2>Extension Status Check</h2>
+        <button onclick="checkExtensionInjected()">Check if Extension is Injected</button>
+        <div id="extension-status" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Permission Check</h2>
+        <button onclick="checkPermissions()">Check Geolocation Permissions</button>
+        <div id="permission-status" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Geolocation Test</h2>
+        <button onclick="testGeolocation()">Get Current Position</button>
+        <button onclick="testWatchPosition()">Watch Position (5 sec)</button>
+        <div id="geolocation-result" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>API Analysis</h2>
+        <button onclick="analyzeGeolocationAPI()">Analyze Geolocation API</button>
+        <div id="api-analysis" class="result"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            element.innerHTML += `[${timestamp}] ${message}\n`;
+            element.className = `result ${type}`;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        function checkExtensionInjected() {
+            clearLog('extension-status');
+            
+            // Check if extension content script is injected
+            const hasChrome = typeof chrome !== 'undefined' && chrome.runtime;
+            
+            log('extension-status', `Chrome extension API available: ${hasChrome}`, hasChrome ? 'success' : 'error');
+            
+            if (hasChrome) {
+                try {
+                    chrome.runtime.sendMessage({ type: 'GET_LOCATION_OVERRIDE' }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            log('extension-status', `Extension communication error: ${chrome.runtime.lastError.message}`, 'error');
+                        } else {
+                            log('extension-status', `Extension response: ${JSON.stringify(response, null, 2)}`, 'success');
+                        }
+                    });
+                } catch (error) {
+                    log('extension-status', `Extension communication failed: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        async function checkPermissions() {
+            clearLog('permission-status');
+            
+            if (!navigator.permissions) {
+                log('permission-status', 'Permissions API not supported', 'error');
+                return;
+            }
+
+            try {
+                const result = await navigator.permissions.query({ name: 'geolocation' });
+                log('permission-status', `Permission state: ${result.state}`, result.state === 'granted' ? 'success' : 'error');
+                
+                result.addEventListener('change', () => {
+                    log('permission-status', `Permission changed to: ${result.state}`, 'info');
+                });
+            } catch (error) {
+                log('permission-status', `Permission check failed: ${error.message}`, 'error');
+            }
+        }
+
+        function testGeolocation() {
+            clearLog('geolocation-result');
+            
+            if (!navigator.geolocation) {
+                log('geolocation-result', 'Geolocation API not supported', 'error');
+                return;
+            }
+
+            log('geolocation-result', 'Requesting current position...', 'info');
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude, accuracy } = position.coords;
+                    log('geolocation-result', `SUCCESS:
+Latitude: ${latitude}
+Longitude: ${longitude}  
+Accuracy: ${accuracy} meters
+Timestamp: ${new Date(position.timestamp).toISOString()}`, 'success');
+                },
+                (error) => {
+                    let errorMessage = 'Unknown error';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Permission denied by user';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Position information unavailable';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Request timeout';
+                            break;
+                    }
+                    log('geolocation-result', `ERROR: ${errorMessage} (Code: ${error.code})`, 'error');
+                },
+                options
+            );
+        }
+
+        function testWatchPosition() {
+            clearLog('geolocation-result');
+            
+            if (!navigator.geolocation) {
+                log('geolocation-result', 'Geolocation API not supported', 'error');
+                return;  
+            }
+
+            log('geolocation-result', 'Starting position watch (5 seconds)...', 'info');
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 1000
+            };
+
+            const watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude, accuracy } = position.coords;
+                    log('geolocation-result', `WATCH UPDATE:
+Latitude: ${latitude}
+Longitude: ${longitude}
+Accuracy: ${accuracy} meters
+Timestamp: ${new Date(position.timestamp).toISOString()}`, 'success');
+                },
+                (error) => {
+                    let errorMessage = 'Unknown error';
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMessage = 'Permission denied by user';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMessage = 'Position information unavailable';
+                            break;
+                        case error.TIMEOUT:
+                            errorMessage = 'Request timeout';
+                            break;
+                    }
+                    log('geolocation-result', `WATCH ERROR: ${errorMessage} (Code: ${error.code})`, 'error');
+                },
+                options
+            );
+
+            // Stop watching after 5 seconds
+            setTimeout(() => {
+                navigator.geolocation.clearWatch(watchId);
+                log('geolocation-result', 'Position watch stopped', 'info');
+            }, 5000);
+        }
+
+        function analyzeGeolocationAPI() {
+            clearLog('api-analysis');
+            
+            log('api-analysis', 'Analyzing geolocation API...', 'info');
+            
+            // Check if geolocation exists
+            if (!navigator.geolocation) {
+                log('api-analysis', 'navigator.geolocation is not available', 'error');
+                return;
+            }
+            
+            // Analyze geolocation methods
+            const analysis = [];
+            analysis.push(`navigator.geolocation exists: ${!!navigator.geolocation}`);
+            analysis.push(`getCurrentPosition type: ${typeof navigator.geolocation.getCurrentPosition}`);
+            analysis.push(`watchPosition type: ${typeof navigator.geolocation.watchPosition}`);
+            analysis.push(`clearWatch type: ${typeof navigator.geolocation.clearWatch}`);
+            
+            // Check if methods have been overridden (they should still be functions)
+            const getCurrentPosStr = navigator.geolocation.getCurrentPosition.toString();
+            const isOverridden = getCurrentPosStr.includes('async function') || getCurrentPosStr.includes('extension') || getCurrentPosStr.includes('override');
+            
+            analysis.push(`getCurrentPosition appears overridden: ${isOverridden}`);
+            analysis.push(`getCurrentPosition function length: ${getCurrentPosStr.length} chars`);
+            
+            log('api-analysis', analysis.join('\n'), 'info');
+            
+            // Try to detect if content script is working
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                log('api-analysis', 'Chrome extension environment detected', 'success');
+            } else {
+                log('api-analysis', 'No Chrome extension environment', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

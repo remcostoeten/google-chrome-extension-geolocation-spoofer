@@ -35,12 +35,16 @@ const DarkMap: React.FC<DarkMapProps> = ({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const currentLocationMarker = useRef<mapboxgl.Marker | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   // useCallback for map initialization
   const initializeMap = useCallback(() => {
-    if (mapboxToken === DEFAULT_MAPBOX_TOKEN) {
-      console.error('Please provide a valid Mapbox token');
+    if (!mapboxToken || mapboxToken === DEFAULT_MAPBOX_TOKEN || mapboxToken === '') {
+      const errorMsg = 'Please provide a valid Mapbox token. Check your .env file for VITE_MAPBOX_TOKEN.';
+      console.error(errorMsg);
+      setMapError(errorMsg);
       return;
     }
 
@@ -89,7 +93,14 @@ const DarkMap: React.FC<DarkMapProps> = ({
 
     mapInstance.on('load', () => {
       map.current = mapInstance;
+      setMapError(null);
+      console.log('Map loaded successfully');
       if (onMapLoad) onMapLoad();
+    });
+
+    mapInstance.on('error', (e) => {
+      console.error('Map error:', e);
+      setMapError('Failed to load map. Please check your Mapbox token.');
     });
 
     // Cleanup
@@ -129,10 +140,13 @@ const DarkMap: React.FC<DarkMapProps> = ({
         // Create marker elements
         const markerEl = document.createElement('div');
         markerEl.className = 'map-pin';
-
-        const markerInner = document.createElement('div');
-        markerInner.className = 'map-pin__inner';
-        markerEl.appendChild(markerInner);
+        markerEl.innerHTML = `
+          <div class="map-pin__pointer">
+            <div class="map-pin__inner"></div>
+            <div class="map-pin__pulse"></div>
+          </div>
+          <div class="map-pin__shadow"></div>
+        `;
 
         // Create a popup
         const popup = new mapboxgl.Popup({
@@ -178,9 +192,94 @@ const DarkMap: React.FC<DarkMapProps> = ({
     }
   }, [locations, currentLocation]);
 
+  // Update current location marker
+  const updateCurrentLocationMarker = useCallback(() => {
+    if (!map.current) {
+      console.log('Map not ready for current location marker');
+      return;
+    }
+
+    console.log('Updating current location marker:', currentLocation);
+
+    // Remove existing current location marker
+    if (currentLocationMarker.current) {
+      currentLocationMarker.current.remove();
+      currentLocationMarker.current = null;
+      console.log('Removed existing current location marker');
+    }
+
+    // Add current location marker if available
+    if (currentLocation) {
+      const { latitude, longitude, city } = currentLocation;
+      console.log('Adding current location marker at:', latitude, longitude);
+
+      // Create a distinct marker element for current location
+      const currentMarkerEl = document.createElement('div');
+      currentMarkerEl.className = 'current-location-marker';
+      currentMarkerEl.style.zIndex = '1000'; // Ensure it's on top
+      currentMarkerEl.innerHTML = `
+        <div class="current-location-pin">
+          <div class="current-location-pin__center"></div>
+          <div class="current-location-pin__pulse"></div>
+          <div class="current-location-pin__outer-pulse"></div>
+        </div>
+      `;
+
+      // Create popup for current location
+      const popup = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        className: 'glass-panel current-location-popup',
+        offset: 25
+      }).setHTML(`
+        <div class="text-xs font-medium">
+          <div class="text-primary font-semibold">📍 Current Location</div>
+          <div class="text-muted-foreground">${city || 'Unknown Location'}</div>
+          <div class="text-foreground">${formatCoordinates(latitude, longitude)}</div>
+        </div>
+      `);
+
+      // Create and store the current location marker
+      const marker = new mapboxgl.Marker({
+        element: currentMarkerEl,
+        anchor: 'center'
+      })
+        .setLngLat([longitude, latitude])
+        .setPopup(popup)
+        .addTo(map.current);
+
+      currentLocationMarker.current = marker;
+      console.log('Current location marker added successfully');
+
+      // Show popup on hover
+      currentMarkerEl.addEventListener('mouseenter', () => {
+        marker.getPopup().addTo(map.current!);
+      });
+
+      currentMarkerEl.addEventListener('mouseleave', () => {
+        marker.getPopup().remove();
+      });
+
+      // Focus map on current location
+      map.current.flyTo({
+        center: [longitude, latitude],
+        zoom: 15,
+        speed: 1.2,
+        curve: 1,
+        essential: true
+      });
+    } else {
+      console.log('No current location to display');
+    }
+  }, [currentLocation]);
+
   useEffect(() => {
     updateMarkers();
   }, [updateMarkers]);
+
+  useEffect(() => {
+    updateCurrentLocationMarker();
+  }, [updateCurrentLocationMarker]);
 
   // Handle fullscreen toggle
   const handleFullscreenToggle = () => {
@@ -200,6 +299,23 @@ const DarkMap: React.FC<DarkMapProps> = ({
       map.current.zoomOut();
     }
   };
+
+  // Show error if mapbox token is invalid
+  if (mapError) {
+    return (
+      <div className={`relative z-0 w-full transition-all duration-300 ease-in-out ${isFullscreen ? 'h-screen fixed inset-0' : 'h-[500px]'} flex items-center justify-center bg-muted border border-border`}>
+        <div className="text-center p-8">
+          <div className="text-destructive text-lg font-semibold mb-2">Map Error</div>
+          <div className="text-muted-foreground text-sm mb-4">{mapError}</div>
+          <div className="text-xs text-muted-foreground">
+            <div>1. Get a Mapbox token from: <a href="https://account.mapbox.com/access-tokens/" target="_blank" rel="noopener noreferrer" className="text-primary underline">https://account.mapbox.com/access-tokens/</a></div>
+            <div>2. Create a .env file in your project root</div>
+            <div>3. Add: VITE_MAPBOX_TOKEN=your_token_here</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`relative z-0 w-full transition-all duration-300 ease-in-out ${isFullscreen ? 'h-screen fixed inset-0' : 'h-[500px]'}`}>

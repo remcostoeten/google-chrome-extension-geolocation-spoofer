@@ -1,7 +1,6 @@
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
   text-align: center;
 }
 
@@ -79,11 +78,34 @@
   }
 
   .map-pin {
-    @apply w-6 h-6 animate-pulse;
+    @apply relative w-8 h-8 cursor-pointer;
+    transform: translate(-50%, -100%);
+  }
+
+  .map-pin__pointer {
+    @apply relative w-full h-full;
   }
 
   .map-pin__inner {
-    @apply w-4 h-4 bg-accent rounded-full shadow-glow;
+    @apply absolute top-0 left-1/2 w-6 h-6 bg-accent rounded-full shadow-glow transform -translate-x-1/2;
+    border: 2px solid hsl(var(--foreground));
+  }
+
+  .map-pin__pulse {
+    @apply absolute top-0 left-1/2 w-6 h-6 bg-accent/30 rounded-full transform -translate-x-1/2 animate-ping;
+  }
+
+  .map-pin__shadow {
+    @apply absolute bottom-0 left-1/2 w-4 h-2 bg-black/20 rounded-full blur-sm transform -translate-x-1/2;
+  }
+
+  .map-pin::after {
+    content: '';
+    @apply absolute top-5 left-1/2 w-0 h-0 transform -translate-x-1/2;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 12px solid hsl(var(--accent));
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
   }
 
   .shadow-glow {
@@ -112,4 +134,92 @@
   .status-pending::before {
     @apply bg-yellow-500 animate-pulse;
   }
+
+  /* Current location marker styles */
+  .current-location-marker {
+    @apply relative w-12 h-12 cursor-pointer;
+    transform: translate(-50%, -50%);
+    z-index: 1000 !important;
+  }
+
+  .current-location-pin {
+    @apply relative w-full h-full;
+  }
+
+  .current-location-pin__center {
+    @apply absolute top-1/2 left-1/2 w-5 h-5 bg-blue-600 rounded-full shadow-current-location transform -translate-x-1/2 -translate-y-1/2;
+    border: 3px solid hsl(var(--foreground));
+    z-index: 1003;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3), 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .current-location-pin__pulse {
+    @apply absolute top-1/2 left-1/2 w-9 h-9 bg-blue-500/40 rounded-full transform -translate-x-1/2 -translate-y-1/2 animate-ping;
+    z-index: 1002;
+    animation: current-location-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  .current-location-pin__outer-pulse {
+    @apply absolute top-1/2 left-1/2 w-14 h-14 bg-blue-500/20 rounded-full transform -translate-x-1/2 -translate-y-1/2;
+    z-index: 1001;
+    animation: outer-pulse 3s ease-in-out infinite;
+  }
+
+  .shadow-current-location {
+    --glow-color: rgba(59, 130, 246, 0.6);
+    --glow-blur: 12px;
+    @apply shadow-[0_0_var(--glow-blur)_var(--glow-color)];
+  }
+
+  @keyframes current-location-ping {
+    0% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.6;
+    }
+    75%, 100% {
+      transform: translate(-50%, -50%) scale(2);
+      opacity: 0;
+    }
+  }
+
+  @keyframes outer-pulse {
+    0%, 100% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 0.3;
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.4);
+      opacity: 0.1;
+    }
+  }
+}
+
+/* Scrollbar styling - dark & minimal */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--muted-foreground) / 0.5);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
 }
